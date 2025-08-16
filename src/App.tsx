@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import GithubSync from "./GithubSync";
 import { v4 as uuidv4 } from "uuid";
+import NoteStructureManager from "./NoteStructureManager";
 
 // 笔记节点类型定义
 interface NoteNode {
@@ -54,7 +55,7 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxLevels = 2, selected
             {node.children.length > 0 && node.expanded && (
               <div className="note-children">
                 <div 
-                  key="ellipsis"
+                  key={`ellipsis-${node.id}`}
                   className="note-tree-node"
                   style={{ paddingLeft: `${(level + 1) * 15 + 10}px` }}
                 >
@@ -104,7 +105,11 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxLevels = 2, selected
 
   return (
     <div className="note-tree">
-      {nodes.map(node => renderNode(node, 0))}
+      {nodes.map(node => (
+        <div key={node.id}>
+          {renderNode(node, 0)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -166,17 +171,10 @@ function NoteEditor({ note, onNoteChange }: {
 // 主应用组件
   function App() {
     // 示例笔记数据
-    const [noteNodes, setNoteNodes] = useState<NoteNode[]>([
-      {
-        id: 'root',
-        title: '我的笔记',
-        content: '这是我的第一个笔记',
-        children: [],
-        expanded: true
-      }
-    ]);
+  const [noteNodes, setNoteNodes] = useState<NoteNode[]>([]);
 
-    const [selectedNode, setSelectedNode] = useState<NoteNode | null>(null);
+  const [selectedNode, setSelectedNode] = useState<NoteNode | null>(null);
+  const noteStructureManager = useRef<NoteStructureManager>(new NoteStructureManager());
   const githubSyncRef = useRef<any>(null);
 
   // 获取节点路径的辅助函数
@@ -229,6 +227,9 @@ function NoteEditor({ note, onNoteChange }: {
       
       return () => clearTimeout(timer);
     }
+    
+    // 初始化笔记结构管理器
+    noteStructureManager.current.initializeStructure(noteNodes);
   }, []);
 
   // 处理节点选择
@@ -286,6 +287,8 @@ function NoteEditor({ note, onNoteChange }: {
         return nodes.map(node => {
           // 如果是根节点"我的笔记"，则添加新笔记作为其子节点
           if (node.title === '我的笔记') {
+            // 更新笔记结构
+            noteStructureManager.current.addNote(newId, node.id);
             return { ...node, children: [...node.children, newNote], expanded: true };
           }
           
@@ -308,6 +311,8 @@ function NoteEditor({ note, onNoteChange }: {
       return nodes.map(node => {
         // 如果是选中的节点，则添加新笔记作为其子节点
         if (node.id === selectedNode.id) {
+          // 更新笔记结构
+          noteStructureManager.current.addNote(newId, selectedNode.id);
           // 确保选中的节点展开以显示新添加的子笔记
           return { ...node, children: [...node.children, newNote], expanded: true };
         }
@@ -327,6 +332,9 @@ function NoteEditor({ note, onNoteChange }: {
 
   // 删除笔记
   const handleDeleteNote = (noteId: string) => {
+    // 使用笔记结构管理器删除笔记
+    noteStructureManager.current.deleteNote(noteId);
+    
     // 递归删除笔记节点
     const deleteNote = (nodes: NoteNode[]): NoteNode[] => {
       return nodes
@@ -347,6 +355,9 @@ function NoteEditor({ note, onNoteChange }: {
   };
 
   const handleNotesSync = (syncedNotes: NoteNode[]) => {
+    // 初始化笔记结构管理器
+    noteStructureManager.current.initializeStructure(syncedNotes);
+    
     setNoteNodes(syncedNotes);
     // 如果有选中的笔记，更新选中笔记的引用
     if (selectedNode) {
