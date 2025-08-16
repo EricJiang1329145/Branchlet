@@ -115,6 +115,20 @@
   cursor: not-allowed;
 }
 
+.reset-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.reset-btn:hover:not(.disabled) {
+  background-color: #c82333;
+}
+
+.reset-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
 .sync-message {
   margin-left: 10px;
   font-size: 14px;
@@ -218,6 +232,20 @@
 .settings-actions button:last-child {
   background-color: #6c757d;
   color: white;
+}
+
+.reset-repo-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.reset-repo-btn:hover {
+  background-color: #c82333;
 }
 
 .delete-error-message {

@@ -169,9 +169,18 @@ function NoteEditor({ note, onNoteChange }: {
 }
 
 // 主应用组件
+  // 在App组件中添加默认的根笔记
   function App() {
-    // 示例笔记数据
-  const [noteNodes, setNoteNodes] = useState<NoteNode[]>([]);
+  // 默认的根笔记数据
+  const defaultRootNote: NoteNode = {
+    id: 'root',
+    title: '我的笔记',
+    content: '这是您的笔记根目录',
+    children: [],
+    expanded: true
+  };
+  
+  const [noteNodes, setNoteNodes] = useState<NoteNode[]>([defaultRootNote]);
 
   const [selectedNode, setSelectedNode] = useState<NoteNode | null>(null);
   const noteStructureManager = useRef<NoteStructureManager>(new NoteStructureManager());
@@ -380,6 +389,13 @@ function NoteEditor({ note, onNoteChange }: {
       if (updatedSelectedNode) {
         setSelectedNode(updatedSelectedNode);
       }
+    }
+  };
+
+  // 重置仓库到出厂默认状态
+  const handleResetRepository = () => {
+    if (githubSyncRef.current && githubSyncRef.current.resetRepository) {
+      githubSyncRef.current.resetRepository();
     }
   };
 

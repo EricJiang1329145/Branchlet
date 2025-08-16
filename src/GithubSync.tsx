@@ -264,6 +264,7 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
   };
 
   // 推送笔记到GitHub
+  // 在pushNotes方法中添加根笔记检查
   const pushNotes = async () => {
     setSyncStatus('syncing');
     setSyncMessage('正在推送笔记到GitHub...');
@@ -443,9 +444,166 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
     }
   };
 
-  // 将pullNotes方法暴露给父组件
+    // 重置仓库到出厂默认状态
+  const resetRepository = async () => {
+    setSyncStatus('syncing');
+    setSyncMessage('正在重置仓库...');
+    
+    try {
+      const octokit = getOctokit();
+      
+      // 如果用户名为空，先获取用户名
+      if (!username) {
+        await retryOperation(async () => {
+          await fetchUsernameFromToken();
+          
+          // 如果获取用户名后仍然为空，则抛出错误
+          if (!username) {
+            throw new Error('无法获取GitHub用户名，请检查Token是否正确设置');
+          }
+        });
+      }
+      
+      // 检查仓库是否存在，如果不存在则创建
+      await retryOperation(createRepository);
+      
+      // 获取现有的文件列表
+      let existingFiles: any[] = [];
+      try {
+        const { data } = await retryOperation(() => octokit.rest.repos.getContent({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: ''
+        }));
+        existingFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
+      } catch (error) {
+        // 如果获取文件列表失败，继续执行推送操作
+        console.warn('获取现有文件列表失败:', error);
+      }
+      
+      // 删除所有现有的笔记文件（除了root.json和structure.json）
+      for (const file of existingFiles) {
+        // 跳过保留的文件
+        if (file.name === 'structure.json') {
+          continue;
+        }
+        
+        // 删除文件
+        await retryOperation(() => octokit.rest.repos.deleteFile({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: file.path,
+          message: `Reset repository - remove ${file.name}`,
+          sha: file.sha
+        }));
+        
+        // 在每次删除后添加小延迟以避免触发速率限制
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // 创建出厂默认的根笔记
+      const rootNote = {
+        id: 'root',
+        title: '我的笔记',
+        content: '这是您的笔记根目录',
+        children: [],
+        expanded: true
+      };
+      
+      // 推送根笔记文件
+      const rootFileName = 'root.json';
+      const rootContent = btoa(unescape(encodeURIComponent(JSON.stringify(rootNote, null, 2))));
+      
+      // 检查根笔记文件是否已存在
+      const existingRootFile = existingFiles.find((file: any) => file.name === rootFileName);
+      
+      if (existingRootFile) {
+        // 更新现有根笔记文件
+        await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: rootFileName,
+          message: 'Reset repository - update root note',
+          content: rootContent,
+          sha: existingRootFile.sha
+        }));
+      } else {
+        // 创建新根笔记文件
+        await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: rootFileName,
+          message: 'Reset repository - create root note',
+          content: rootContent
+        }));
+      }
+      
+      // 创建出厂默认的结构文件
+      const defaultStructure = {
+        root: {
+          parentId: null,
+          childIds: []
+        }
+      };
+      
+      const structureFileName = 'structure.json';
+      const structureContent = btoa(unescape(encodeURIComponent(JSON.stringify(defaultStructure, null, 2))));
+      
+      // 检查结构文件是否已存在
+      const existingStructureFile = existingFiles.find((file: any) => file.name === structureFileName);
+      
+      if (existingStructureFile) {
+        // 更新现有结构文件
+        await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: structureFileName,
+          message: 'Reset repository - update structure',
+          content: structureContent,
+          sha: existingStructureFile.sha
+        }));
+      } else {
+        // 创建新结构文件
+        await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: structureFileName,
+          message: 'Reset repository - create structure',
+          content: structureContent
+        }));
+      }
+      
+      setSyncStatus('success');
+      setSyncMessage('仓库重置成功!');
+      
+      // 3秒后清除状态消息
+      setTimeout(() => {
+        setSyncStatus('idle');
+        setSyncMessage('');
+      }, 3000);
+    } catch (error: any) {
+      console.error('重置仓库失败:', error);
+      setSyncStatus('error');
+      
+      // 提供更友好的错误消息
+      if (error.message.includes('rate limit')) {
+        setSyncMessage('GitHub API速率限制，请稍后再试或减少同步频率');
+      } else {
+        setSyncMessage(`重置失败: ${error.message}`);
+      }
+      
+      // 5秒后清除状态消息
+      setTimeout(() => {
+        setSyncStatus('idle');
+        setSyncMessage('');
+      }, 5000);
+    }
+  };
+
+  // 将pullNotes和resetRepository方法暴露给父组件
   useImperativeHandle(ref, () => ({
-    pullNotes
+    pullNotes,
+    resetRepository
   }));
 
   return (
@@ -475,6 +633,14 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
           title="删除选中的笔记（包含所有子笔记）"
         >
           删除
+        </button>
+        <button 
+          className={`sync-btn reset-btn ${syncStatus === 'syncing' ? 'disabled' : ''}`}
+          onClick={resetRepository}
+          disabled={syncStatus === 'syncing'}
+          title="重置仓库到出厂默认状态"
+        >
+          重置
         </button>
         {syncMessage && (
           <span className={`sync-message ${syncStatus}`}>
@@ -586,6 +752,19 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
             <div className="settings-actions">
               <button onClick={saveCredentials}>保存</button>
               <button onClick={() => setIsSettingsOpen(false)}>取消</button>
+              <button 
+                className="reset-repo-btn"
+                onClick={() => {
+                  setIsSettingsOpen(false);
+                  setTimeout(() => {
+                    if (window.confirm('您确定要重置仓库到出厂默认状态吗？这将删除所有笔记，只保留根笔记和结构文件。')) {
+                      resetRepository();
+                    }
+                  }, 100);
+                }}
+              >
+                重置仓库
+              </button>
             </div>
           </div>
         </div>
