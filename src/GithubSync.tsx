@@ -233,8 +233,19 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
       noteStructureManager.initializeStructureFromData(structure);
       const pulledNotes = noteStructureManager.rebuildNoteTree(noteContents);
       
+      // 将所有拉取的笔记标记为已同步
+      const markNotesAsSynced = (notes: any[]): any[] => {
+        return notes.map(note => ({
+          ...note,
+          synced: true,
+          children: note.children ? markNotesAsSynced(note.children) : []
+        }));
+      };
+      
+      const syncedNotes = markNotesAsSynced(pulledNotes);
+      
       // 更新应用中的笔记
-      onNotesSync(pulledNotes);
+      onNotesSync(syncedNotes);
       
       setSyncStatus('success');
       setSyncMessage('笔记同步成功!');
@@ -349,9 +360,28 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
       // 获取所有笔记（包括子笔记）
       const allNotes = getAllNotes(notes);
 
-      // 为每个笔记创建或更新文件
+      // 过滤出未同步的笔记
+      const unsyncedNotes = allNotes.filter(note => note.synced === false);
+
+      // 如果没有未同步的笔记，则直接返回成功
+      if (unsyncedNotes.length === 0) {
+        setSyncStatus('success');
+        setSyncMessage('没有需要同步的笔记!');
+        
+        // 3秒后清除状态消息
+        setTimeout(() => {
+          setSyncStatus('idle');
+          setSyncMessage('');
+        }, 3000);
+        return;
+      }
+
+      // 显示正在同步的笔记数量
+      setSyncMessage(`正在推送 ${unsyncedNotes.length} 个笔记到GitHub...`);
+
+      // 为每个未同步的笔记创建或更新文件
       // 逐个推送笔记以避免触发速率限制
-      for (const note of allNotes) {
+      for (const note of unsyncedNotes) {
         const fileName = `${note.id}.json`;
         // 使用encodeURIComponent和unescape处理非Latin1字符
         const content = btoa(unescape(encodeURIComponent(JSON.stringify({
@@ -390,7 +420,7 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
       }
       
       setSyncStatus('success');
-      setSyncMessage('笔记推送成功!');
+      setSyncMessage(`${unsyncedNotes.length} 个笔记推送成功!`);
       
       // 3秒后清除状态消息
       setTimeout(() => {
@@ -615,10 +645,68 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
     }
   };
 
-  // 将pullNotes和resetRepository方法暴露给父组件
+  // 删除指定笔记文件
+  const deleteNote = async (noteId: string) => {
+    try {
+      const octokit = getOctokit();
+      
+      // 如果用户名为空，先获取用户名
+      if (!username) {
+        await retryOperation(async () => {
+          await fetchUsernameFromToken();
+          
+          // 如果获取用户名后仍然为空，则抛出错误
+          if (!username) {
+            throw new Error('无法获取GitHub用户名，请检查Token是否正确设置');
+          }
+        });
+      }
+      
+      // 检查仓库是否存在，如果不存在则创建
+      await retryOperation(createRepository);
+      
+      // 获取现有的文件列表
+      let existingFiles: any[] = [];
+      try {
+        const { data } = await retryOperation(() => octokit.rest.repos.getContent({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: ''
+        }));
+        existingFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
+      } catch (error) {
+        // 如果获取文件列表失败，继续执行推送操作
+        console.warn('获取现有文件列表失败:', error);
+        return; // 如果无法获取文件列表，则无法删除文件
+      }
+      
+      // 查找要删除的文件
+      const fileName = `${noteId}.json`;
+      const fileToDelete = existingFiles.find((file: any) => file.name === fileName);
+      
+      // 如果文件存在，则删除它
+      if (fileToDelete) {
+        await retryOperation(() => octokit.rest.repos.deleteFile({
+          owner: username,
+          repo: 'Branchlet-nts',
+          path: fileToDelete.path,
+          message: `Delete note ${noteId}`,
+          sha: fileToDelete.sha
+        }));
+        
+        console.log(`成功删除笔记文件: ${fileName}`);
+      }
+    } catch (error: any) {
+      console.error('删除笔记文件失败:', error);
+      // 不向用户显示错误，因为这是一个后台操作
+    }
+  };
+
+  // 将pullNotes、resetRepository和deleteNote方法暴露给父组件
   useImperativeHandle(ref, () => ({
     pullNotes,
-    resetRepository
+    resetRepository,
+    deleteNote
   }));
 
   return (

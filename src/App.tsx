@@ -11,6 +11,7 @@ interface NoteNode {
   content: string;
   children: NoteNode[];
   expanded: boolean;
+  synced?: boolean; // 添加同步状态字段，标记笔记是否已同步到GitHub
 }
 
 // 笔记树组件
@@ -88,6 +89,9 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxLevels = 2, selected
             <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
           )}
           <span className="node-title">{node.title}</span>
+          {node.synced === false && (
+            <span className="sync-status-icon" title="未同步">●</span>
+          )}
         </div>
         {hasChildren && node.expanded && (
           <div className="note-children">
@@ -119,6 +123,8 @@ function NoteEditor({ note, onNoteChange }: {
   note: NoteNode | null; 
   onNoteChange: (note: NoteNode) => void;
 }) {
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
+
   if (!note) {
     return (
       <div className="note-editor-placeholder">
@@ -126,6 +132,12 @@ function NoteEditor({ note, onNoteChange }: {
       </div>
     );
   }
+
+  const handleCopyUUID = () => {
+    navigator.clipboard.writeText(note.id);
+    setShowCopySuccess(true);
+    setTimeout(() => setShowCopySuccess(false), 2000); // 2秒后隐藏提示
+  };
 
   return (
     <div className="note-editor">
@@ -154,14 +166,14 @@ function NoteEditor({ note, onNoteChange }: {
           />
           <button 
             className="copy-uuid-btn"
-            onClick={() => {
-              navigator.clipboard.writeText(note.id);
-              // 可以添加一个提示，表明UUID已复制
-            }}
+            onClick={handleCopyUUID}
             title="复制UUID"
           >
             复制
           </button>
+          {showCopySuccess && (
+            <span className="copy-success-message">已复制!</span>
+          )}
         </div>
       </div>
     </div>
@@ -264,7 +276,8 @@ function NoteEditor({ note, onNoteChange }: {
     const updateNoteContent = (nodes: NoteNode[]): NoteNode[] => {
       return nodes.map(n => {
         if (n.id === updatedNote.id) {
-          return updatedNote;
+          // 当笔记内容发生变化时，标记为未同步
+          return { ...updatedNote, synced: false };
         }
         if (n.children.length > 0) {
           return { ...n, children: updateNoteContent(n.children) };
@@ -273,7 +286,7 @@ function NoteEditor({ note, onNoteChange }: {
       });
     };
     setNoteNodes(updateNoteContent(noteNodes));
-    setSelectedNode(updatedNote);
+    setSelectedNode({ ...updatedNote, synced: false });
   };
 
   // 添加新笔记
@@ -287,7 +300,8 @@ function NoteEditor({ note, onNoteChange }: {
       title: '新笔记',
       content: '请输入笔记内容',
       children: [],
-      expanded: true
+      expanded: true,
+      synced: false // 新笔记默认未同步
     };
 
     // 如果没有选中任何笔记，则将新笔记添加为"我的笔记"的子笔记
@@ -341,6 +355,21 @@ function NoteEditor({ note, onNoteChange }: {
 
   // 删除笔记
   const handleDeleteNote = (noteId: string) => {
+    // 查找要删除的笔记
+    const findNote = (nodes: NoteNode[]): NoteNode | undefined => {
+      for (const node of nodes) {
+        if (node.id === noteId) {
+          return node;
+        }
+        if (node.children.length > 0) {
+          const found = findNote(node.children);
+          if (found) return found;
+        }
+      }
+    };
+    
+    const noteToDelete = findNote(noteNodes);
+    
     // 使用笔记结构管理器删除笔记
     noteStructureManager.current.deleteNote(noteId);
     
@@ -360,6 +389,13 @@ function NoteEditor({ note, onNoteChange }: {
     // 如果删除的是当前选中的笔记，则取消选中
     if (selectedNode && selectedNode.id === noteId) {
       setSelectedNode(null);
+    }
+    
+    // 如果笔记已同步，则通知GithubSync组件删除对应的GitHub文件
+    if (noteToDelete && noteToDelete.synced === true) {
+      if (githubSyncRef.current && githubSyncRef.current.deleteNote) {
+        githubSyncRef.current.deleteNote(noteId);
+      }
     }
   };
 

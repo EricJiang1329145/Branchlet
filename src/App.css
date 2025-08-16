@@ -1,19 +1,25 @@
+/* Logo悬停效果 - Vite版本 */
 .logo.vite:hover {
   filter: drop-shadow(0 0 2em #747bff);
 }
 
+/* Logo悬停效果 - React版本 */
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafb);
 }
+/* CSS变量定义 */
 :root {
+  /* 字体设置 */
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
 
+  /* 颜色设置 */
   color: #e0e0e0;
   background-color: #1a1a1a;
 
+  /* 字体渲染优化 */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -36,6 +42,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* GitHub同步相关样式 */
 .github-sync {
   display: flex;
   align-items: center;
@@ -59,6 +66,7 @@
   flex: 1;
 }
 
+/* 切换Token可见性按钮 */
 .toggle-token-visibility {
   padding: 8px 12px;
   background-color: #6c757d;
@@ -74,6 +82,7 @@
   background-color: #5a6268;
 }
 
+/* 同步按钮基础样式 */
 .sync-btn {
   padding: 5px 10px;
   border: none;
@@ -86,6 +95,7 @@
   opacity: 0.8;
 }
 
+/* 各类同步按钮的具体样式 */
 .pull-btn {
   background-color: #28a745;
   color: white;
@@ -115,6 +125,7 @@
   cursor: not-allowed;
 }
 
+/* 重置按钮样式 */
 .reset-btn {
   background-color: #dc3545;
   color: white;
@@ -129,6 +140,7 @@
   cursor: not-allowed;
 }
 
+/* 同步消息样式 */
 .sync-message {
   margin-left: 10px;
   font-size: 14px;
@@ -142,6 +154,15 @@
   color: #dc3545;
 }
 
+/* 同步状态图标 */
+.sync-status-icon {
+  margin-left: 5px;
+  color: #ffcc00;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+/* 设置按钮样式 */
 .settings-btn {
   padding: 5px 10px;
   background-color: #6c757d;
@@ -156,6 +177,7 @@
   background-color: #5a6268;
 }
 
+/* 设置模态框 */
 .settings-modal {
   position: fixed;
   top: 0;
@@ -180,6 +202,7 @@
   margin-top: 0;
 }
 
+/* 表单组样式 */
 .form-group {
   margin-bottom: 15px;
 }
@@ -198,6 +221,7 @@
   box-sizing: border-box;
 }
 
+/* 创建Token链接 */
 .create-token-link {
   display: inline-block;
   margin-top: 5px;
@@ -210,6 +234,7 @@
   text-decoration: underline;
 }
 
+/* 设置操作按钮区域 */
 .settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -234,6 +259,7 @@
   color: white;
 }
 
+/* 重置仓库按钮 */
 .reset-repo-btn {
   background-color: #dc3545;
   color: white;
@@ -248,6 +274,7 @@
   background-color: #c82333;
 }
 
+/* 删除错误消息 */
 .delete-error-message {
   color: #ff6b6b;
   font-size: 0.9rem;
@@ -258,6 +285,7 @@
   border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
+/* 应用标题 */
 .app-header h1 {
   margin: 0;
   font-size: 1.5rem;
@@ -286,6 +314,7 @@
   border-bottom: 1px solid #404040;
 }
 
+/* 新建笔记按钮 */
 .new-note-btn {
   width: 100%;
   padding: 0.5rem;
@@ -438,9 +467,14 @@
 
 /* UUID显示区域 */
 .note-uuid {
-  margin-top: 1rem;
+  margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid #404040;
+  margin-bottom: 0;
+  position: sticky;
+  bottom: 0;
+  background-color: #1a1a1a;
+  z-index: 10;
 }
 
 .note-uuid label {
@@ -486,6 +520,21 @@
   background-color: #0056b3;
 }
 
+.copy-success-message {
+  color: #4caf50;
+  font-size: 0.9rem;
+  margin-left: 10px;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Logo样式 */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -493,15 +542,18 @@
   transition: 0.75s;
 }
 
+/* Tauri Logo悬停效果 */
 .logo.tauri:hover {
   filter: drop-shadow(0 0 2em #24c8db);
 }
 
+/* 布局行样式 */
 .row {
   display: flex;
   justify-content: center;
 }
 
+/* 链接样式 */
 a {
   font-weight: 500;
   color: #646cff;
@@ -512,9 +564,11 @@ a:hover {
   color: #535bf2;
 }
 
+/* 标题样式 */
 h1 {
   text-align: center;
 }
+/* 输入框和按钮基础样式 */
 
 input,
 button {
@@ -530,6 +584,7 @@ button {
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
+/* 按钮样式 */
 button {
   cursor: pointer;
 }
@@ -542,15 +597,18 @@ button:active {
   background-color: #e8e8e8;
 }
 
+/* 输入框和按钮焦点状态 */
 input,
 button {
   outline: none;
 }
 
+/* 问候输入框 */
 #greet-input {
   margin-right: 5px;
 }
 
+/* 浅色模式适配 */
 @media (prefers-color-scheme: light) {
   :root {
     color: #0f0f0f;
