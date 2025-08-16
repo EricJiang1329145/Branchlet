@@ -4,14 +4,19 @@ import { Octokit } from '@octokit/rest';
 interface GithubSyncProps {
   onNotesSync: (notes: any[]) => void;
   notes: any[];
+  selectedNode?: any;
+  onDeleteNote?: (noteId: string) => void;
 }
 
-const GithubSync = forwardRef(({ onNotesSync, notes }: GithubSyncProps, ref) => {
+const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote }: GithubSyncProps, ref) => {
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState('');
 
   // 初始化时从本地存储获取token和username
   useEffect(() => {
@@ -86,27 +91,27 @@ const GithubSync = forwardRef(({ onNotesSync, notes }: GithubSyncProps, ref) => 
       await createRepository();
       
       // 获取仓库中的文件
-      const { data } = await octokit.rest.repos.getContent({
-        owner: username,
-        repo: 'Branchlet-nts',
-        path: ''
-      });
-      
-      // 过滤出.json文件
-      const noteFiles = data.filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
+  const { data } = await octokit.rest.repos.getContent({
+    owner: username,
+    repo: 'Branchlet-nts',
+    path: ''
+  });
+  
+  // 过滤出.json文件
+  const noteFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
       
       // 下载并解析所有笔记文件
       const notesPromises = noteFiles.map(async (file: any) => {
-        const { data: fileData } = await octokit.rest.repos.getContent({
-          owner: username,
-          repo: 'Branchlet-nts',
-          path: file.path
-        });
-        
-        // 解码Base64内容，处理非Latin1字符
-        const content = decodeURIComponent(escape(atob(fileData.content)));
-        return JSON.parse(content);
-      });
+    const { data: fileData } = await octokit.rest.repos.getContent({
+      owner: username,
+      repo: 'Branchlet-nts',
+      path: file.path
+    });
+    
+    // 解码Base64内容，处理非Latin1字符
+    const content = decodeURIComponent(escape(atob((fileData as any).content)));
+    return JSON.parse(content);
+  });
       
       const pulledNotes = await Promise.all(notesPromises);
       
@@ -149,11 +154,11 @@ const GithubSync = forwardRef(({ onNotesSync, notes }: GithubSyncProps, ref) => 
       let existingFiles: any[] = [];
       try {
         const { data } = await octokit.rest.repos.getContent({
-          owner: username,
-          repo: 'Branchlet-nts',
-          path: ''
-        });
-        existingFiles = data.filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
+        owner: username,
+        repo: 'Branchlet-nts',
+        path: ''
+      });
+      existingFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
       } catch (error) {
         // 如果获取文件列表失败，继续执行推送操作
         console.warn('获取现有文件列表失败:', error);
@@ -213,6 +218,49 @@ const GithubSync = forwardRef(({ onNotesSync, notes }: GithubSyncProps, ref) => 
     }
   };
 
+  // 删除笔记
+  const handleDeleteNote = () => {
+    if (selectedNode && onDeleteNote) {
+      // 检查是否是根笔记
+      const isRootNote = notes.some(note => note.id === selectedNode.id && note.title === '我的笔记');
+      
+      // 如果不是根笔记，则显示删除确认模态框
+      if (!isRootNote) {
+        setIsDeleteModalOpen(true);
+        setDeleteConfirmationId('');
+      }
+    }
+  };
+
+  // 确认删除笔记
+  const confirmDeleteNote = () => {
+    if (selectedNode && onDeleteNote && deleteConfirmationId === selectedNode.id) {
+      onDeleteNote(selectedNode.id);
+      setIsDeleteModalOpen(false);
+      setDeleteConfirmationId('');
+      
+      // 显示删除成功消息
+      setSyncStatus('success');
+      setSyncMessage('笔记删除成功!');
+      
+      // 3秒后清除状态消息
+      setTimeout(() => {
+        setSyncStatus('idle');
+        setSyncMessage('');
+      }, 3000);
+    } else {
+      // 显示删除失败消息
+      setSyncStatus('error');
+      setSyncMessage('UUID不匹配，无法删除笔记!');
+      
+      // 3秒后清除状态消息
+      setTimeout(() => {
+        setSyncStatus('idle');
+        setSyncMessage('');
+      }, 3000);
+    }
+  };
+
   // 将pullNotes方法暴露给父组件
   useImperativeHandle(ref, () => ({
     pullNotes
@@ -238,6 +286,14 @@ const GithubSync = forwardRef(({ onNotesSync, notes }: GithubSyncProps, ref) => 
         >
           推送
         </button>
+        <button 
+          className={`sync-btn delete-btn ${!selectedNode || (notes.some(note => note.id === selectedNode.id && note.title === '我的笔记')) ? 'disabled' : ''}`}
+          onClick={handleDeleteNote}
+          disabled={!selectedNode || (notes.some(note => note.id === selectedNode.id && note.title === '我的笔记'))}
+          title="删除选中的笔记（包含所有子笔记）"
+        >
+          删除
+        </button>
         {syncMessage && (
           <span className={`sync-message ${syncStatus}`}>
             {syncMessage}
@@ -254,19 +310,56 @@ const GithubSync = forwardRef(({ onNotesSync, notes }: GithubSyncProps, ref) => 
         设置
       </button>
       
-      {/* 设置模态框 */}
+      {/* 删除确认模态框 */}
+      {isDeleteModalOpen && (
+        <div className="settings-modal">
+          <div className="settings-content">
+            <h3>确认删除笔记</h3>
+            <p>您确定要删除笔记 "{selectedNode?.title}" 及其所有子笔记吗？</p>
+            <p>请输入笔记的UUID以确认删除：</p>
+            <div className="form-group">
+              <input
+                type="text"
+                value={deleteConfirmationId}
+                onChange={(e) => setDeleteConfirmationId(e.target.value)}
+                placeholder="请输入笔记UUID"
+              />
+              {syncStatus === 'error' && syncMessage && (
+                <div className="delete-error-message">
+                  {syncMessage}
+                </div>
+              )}
+            </div>
+            <div className="settings-actions">
+              <button onClick={confirmDeleteNote}>确认删除</button>
+              <button onClick={() => setIsDeleteModalOpen(false)}>取消</button>
+            </div>
+          </div>
+      </div>
+    )}
+    
+    {/* 设置模态框 */}
       {isSettingsOpen && (
         <div className="settings-modal">
           <div className="settings-content">
             <h3>GitHub设置</h3>
             <div className="form-group">
               <label>GitHub Token:</label>
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="请输入GitHub Personal Access Token"
-              />
+              <div className="token-input-container">
+                <input
+                  type={showToken ? "text" : "password"}
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="请输入GitHub Personal Access Token"
+                />
+                <button 
+                  type="button"
+                  className="toggle-token-visibility"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? '隐藏' : '显示'}
+                </button>
+              </div>
               <a 
                 href="https://github.com/settings/tokens/new" 
                 target="_blank" 

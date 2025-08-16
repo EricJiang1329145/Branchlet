@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import GithubSync from "./GithubSync";
+import { v4 as uuidv4 } from "uuid";
 
 // 笔记节点类型定义
 interface NoteNode {
@@ -12,54 +13,63 @@ interface NoteNode {
 }
 
 // 笔记树组件
-function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxRootLevels = 2, maxChildLevels = 2, selectedNodePath }: { 
+function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxLevels = 2, selectedNodePath }: { 
   nodes: NoteNode[]; 
   onNodeSelect: (node: NoteNode) => void; 
   selectedNodeId: string | null;
-  maxRootLevels?: number;
-  maxChildLevels?: number;
+  maxLevels?: number;
   selectedNodePath?: NoteNode[];
 }) {
-  const renderNode = (node: NoteNode, level: number = 0, isRoot: boolean = true) => {
+  const renderNode = (node: NoteNode, level: number = 0) => {
     // 如果有选中的节点路径，根据路径调整显示层级
     if (selectedNodePath && selectedNodePath.length > 0) {
       // 找到当前节点在路径中的位置
       const nodeIndex = selectedNodePath.findIndex(n => n.id === node.id);
       
-      // 如果当前节点在路径中
-      if (nodeIndex !== -1) {
-        // 计算相对于选中节点的层级
-        const relativeLevel = nodeIndex - (selectedNodePath.length - 1);
-        
-        // 限制根目录层级（选中节点向上的层级）
-        if (relativeLevel < 0 && Math.abs(relativeLevel) > maxRootLevels) {
-          return null;
-        }
-        
-        // 限制子目录层级（选中节点向下的层级）
-        if (relativeLevel > 0 && relativeLevel > maxChildLevels) {
-          return null;
-        }
-      } else {
-        // 如果当前节点不在路径中，检查是否为根节点
-        // 只显示前两层根节点
-        if (isRoot && level >= maxRootLevels) {
-          return null;
-        }
-        
-        // 对于非路径中的子节点，也应用层级限制
-        if (!isRoot && level > maxRootLevels + maxChildLevels) {
-          return null;
-        }
-      }
-    } else {
-      // 如果没有选中的节点，只显示前两层根节点
-      if (isRoot && level >= maxRootLevels) {
+      // 找到选中节点在路径中的位置
+      const selectedIndex = selectedNodePath.length - 1;
+      
+      // 计算相对于选中节点的层级
+      const relativeLevel = nodeIndex - selectedIndex;
+      
+      // 只显示选中节点上下各maxLevels层的节点
+      if (Math.abs(relativeLevel) > maxLevels) {
         return null;
       }
       
-      // 对于子节点，也应用层级限制
-      if (!isRoot && level > maxRootLevels + maxChildLevels) {
+      // 如果是选中节点的直接子节点，且超出显示层级，则显示省略号
+      if (relativeLevel === maxLevels && node.children.length > 0) {
+        return (
+          <div key={node.id} className="note-tree-node">
+            <div 
+              className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
+              onClick={() => onNodeSelect(node)}
+              style={{ paddingLeft: `${level * 15 + 10}px` }}
+            >
+              {node.children.length > 0 && (
+                <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
+              )}
+              <span className="node-title">{node.title}</span>
+            </div>
+            {node.children.length > 0 && node.expanded && (
+              <div className="note-children">
+                <div 
+                  key="ellipsis"
+                  className="note-tree-node"
+                  style={{ paddingLeft: `${(level + 1) * 15 + 10}px` }}
+                >
+                  <div className="note-node-header">
+                    <span className="node-title">...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+    } else {
+      // 如果没有选中的节点，只显示根节点
+      if (level > 0) {
         return null;
       }
     }
@@ -80,29 +90,12 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxRootLevels = 2, maxC
         </div>
         {hasChildren && node.expanded && (
           <div className="note-children">
-            {node.children.map(child => {
+            {node.children.map(child => (
               // 递归渲染子节点
-              const renderedChild = renderNode(child, level + 1, false);
-              // 如果子节点被限制不显示，则显示一个提示
-              if (renderedChild === null) {
-                // 检查是否还有深层子节点
-                const hasDeepChildren = child.children.length > 0;
-                if (hasDeepChildren) {
-                  return (
-                    <div 
-                      key={child.id} 
-                      className="note-tree-node"
-                      style={{ paddingLeft: `${(level + 1) * 15 + 10}px` }}
-                    >
-                      <div className="note-node-header">
-                        <span className="node-title">...</span>
-                      </div>
-                    </div>
-                  );
-                }
-              }
-              return renderedChild;
-            })}
+              <div key={child.id}>
+                {renderNode(child, level + 1)}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -111,7 +104,7 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxRootLevels = 2, maxC
 
   return (
     <div className="note-tree">
-      {nodes.map(node => renderNode(node, 0, true))}
+      {nodes.map(node => renderNode(node, 0))}
     </div>
   );
 }
@@ -145,6 +138,27 @@ function NoteEditor({ note, onNoteChange }: {
         placeholder="输入笔记内容"
         rows={20}
       />
+      <div className="note-uuid">
+        <label>UUID:</label>
+        <div className="uuid-container">
+          <input
+            type="text"
+            className="uuid-display"
+            value={note.id}
+            readOnly
+          />
+          <button 
+            className="copy-uuid-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(note.id);
+              // 可以添加一个提示，表明UUID已复制
+            }}
+            title="复制UUID"
+          >
+            复制
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -154,18 +168,10 @@ function NoteEditor({ note, onNoteChange }: {
     // 示例笔记数据
     const [noteNodes, setNoteNodes] = useState<NoteNode[]>([
       {
-        id: '1',
+        id: 'root',
         title: '我的笔记',
         content: '这是我的第一个笔记',
-        children: [
-          {
-            id: '2',
-            title: '子笔记1',
-            content: '这是子笔记的内容',
-            children: [],
-            expanded: true
-          }
-        ],
+        children: [],
         expanded: true
       }
     ]);
@@ -263,7 +269,7 @@ function NoteEditor({ note, onNoteChange }: {
   // 添加新笔记
   const handleAddNote = () => {
     // 生成唯一ID
-    const newId = Date.now().toString();
+    const newId = uuidv4();
     
     // 创建新笔记
     const newNote: NoteNode = {
@@ -319,6 +325,27 @@ function NoteEditor({ note, onNoteChange }: {
     setSelectedNode(newNote);
   };
 
+  // 删除笔记
+  const handleDeleteNote = (noteId: string) => {
+    // 递归删除笔记节点
+    const deleteNote = (nodes: NoteNode[]): NoteNode[] => {
+      return nodes
+        .filter(node => node.id !== noteId)
+        .map(node => ({
+          ...node,
+          children: deleteNote(node.children)
+        }));
+    };
+
+    const updatedNodes = deleteNote(noteNodes);
+    setNoteNodes(updatedNodes);
+    
+    // 如果删除的是当前选中的笔记，则取消选中
+    if (selectedNode && selectedNode.id === noteId) {
+      setSelectedNode(null);
+    }
+  };
+
   const handleNotesSync = (syncedNotes: NoteNode[]) => {
     setNoteNodes(syncedNotes);
     // 如果有选中的笔记，更新选中笔记的引用
@@ -349,7 +376,13 @@ function NoteEditor({ note, onNoteChange }: {
     <div className="app-container">
       <header className="app-header">
   <h1>Branchlet - 笔记应用</h1>
-  <GithubSync ref={githubSyncRef} onNotesSync={handleNotesSync} notes={noteNodes} />
+  <GithubSync 
+    ref={githubSyncRef} 
+    onNotesSync={handleNotesSync} 
+    notes={noteNodes} 
+    selectedNode={selectedNode}
+    onDeleteNote={handleDeleteNote}
+  />
 </header>
       <div className="app-content">
         <div className="note-sidebar">
@@ -371,9 +404,8 @@ function NoteEditor({ note, onNoteChange }: {
                       </>
                     )}
                     {path.slice(Math.max(0, path.length - 4)).map((node, index) => (
-                      <>
+                      <React.Fragment key={node.id}>
                         <span 
-                          key={node.id}
                           className={`breadcrumb-item ${node.id === selectedNode.id ? 'active' : ''}`}
                           onClick={() => {
                             const targetNode = findNode(noteNodes, node.id);
@@ -385,7 +417,7 @@ function NoteEditor({ note, onNoteChange }: {
                         {index < Math.min(path.length, 4) - 1 && (
                           <span className="breadcrumb-separator">/</span>
                         )}
-                      </>
+                      </React.Fragment>
                     ))}
                   </>
                 ) : null;
@@ -397,9 +429,8 @@ function NoteEditor({ note, onNoteChange }: {
             nodes={noteNodes} 
             onNodeSelect={handleNodeSelect} 
             selectedNodeId={selectedNode?.id || null}
-            maxRootLevels={2}
-            maxChildLevels={2}
-            selectedNodePath={selectedNode ? getNodePath(noteNodes, selectedNode.id) : undefined}
+            maxLevels={2}
+            selectedNodePath={selectedNode ? getNodePath(noteNodes, selectedNode.id) || undefined : undefined}
           />
         </div>
         <div className="note-main">

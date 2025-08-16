@@ -48,6 +48,32 @@
   gap: 5px;
 }
 
+/* Token输入框容器 */
+.token-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.token-input-container input {
+  flex: 1;
+}
+
+.toggle-token-visibility {
+  padding: 8px 12px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 60px;
+}
+
+.toggle-token-visibility:hover {
+  background-color: #5a6268;
+}
+
 .sync-btn {
   padding: 5px 10px;
   border: none;
@@ -68,6 +94,20 @@
 .push-btn {
   background-color: #007bff;
   color: white;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.delete-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
 }
 
 .sync-btn.disabled {
@@ -178,6 +218,16 @@
 .settings-actions button:last-child {
   background-color: #6c757d;
   color: white;
+}
+
+.delete-error-message {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
 .app-header h1 {
@@ -356,6 +406,56 @@
   justify-content: center;
   color: #999;
   font-size: 1.1rem;
+}
+
+/* UUID显示区域 */
+.note-uuid {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #404040;
+}
+
+.note-uuid label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.uuid-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.uuid-display {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: #2d2d2d;
+  color: #999;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.copy-uuid-btn {
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.copy-uuid-btn:hover {
+  background-color: #0069d9;
+}
+
+.copy-uuid-btn:active {
+  background-color: #0056b3;
 }
 
 .logo {
