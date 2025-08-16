@@ -6,105 +6,180 @@ import NoteStructureManager from "./NoteStructureManager";
 import { NoteNode } from "./types";
 
 // 笔记树组件
-function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxLevels = 2, selectedNodePath }: { 
+function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: { 
   nodes: NoteNode[]; 
   onNodeSelect: (node: NoteNode) => void; 
   selectedNodeId: string | null;
-  maxLevels?: number;
   selectedNodePath?: NoteNode[];
 }) {
-  const renderNode = (node: NoteNode, level: number = 0) => {
-    // 如果有选中的节点路径，根据路径调整显示层级
-    if (selectedNodePath && selectedNodePath.length > 0) {
-      // 找到当前节点在路径中的位置
-      const nodeIndex = selectedNodePath.findIndex(n => n.id === node.id);
-      
-      // 找到选中节点在路径中的位置
-      const selectedIndex = selectedNodePath.length - 1;
-      
-      // 计算相对于选中节点的层级
-      const relativeLevel = nodeIndex - selectedIndex;
-      
-      // 只显示选中节点上下各maxLevels层的节点
-      if (Math.abs(relativeLevel) > maxLevels) {
-        return null;
+  // 获取节点的父节点
+  const getParentNode = (nodes: NoteNode[], targetId: string): NoteNode | null => {
+    for (const node of nodes) {
+      if (node.children.some(child => child.id === targetId)) {
+        return node;
       }
       
-      // 如果是选中节点的直接子节点，且超出显示层级，则显示省略号
-      if (relativeLevel === maxLevels && node.children.length > 0) {
-        return (
-          <div key={node.id} className="note-tree-node">
-            <div 
-              className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
-              onClick={() => onNodeSelect(node)}
-              style={{ paddingLeft: `${level * 15 + 10}px` }}
-            >
-              {node.children.length > 0 && (
-                <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
-              )}
-              <span className="node-title">{node.title}</span>
-            </div>
-            {node.children.length > 0 && node.expanded && (
-              <div className="note-children">
-                <div 
-                  key={`ellipsis-${node.id}`}
-                  className="note-tree-node"
-                  style={{ paddingLeft: `${(level + 1) * 15 + 10}px` }}
-                >
-                  <div className="note-node-header">
-                    <span className="node-title">...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
+      if (node.children.length > 0) {
+        const parent = getParentNode(node.children, targetId);
+        if (parent) return parent;
       }
-    } else {
-      // 如果没有选中的节点，只显示根节点
+    }
+    return null;
+  };
+
+  // 获取节点的所有兄弟节点
+  const getSiblingNodes = (nodes: NoteNode[], targetId: string): NoteNode[] => {
+    const parent = getParentNode(nodes, targetId);
+    if (parent) {
+      return parent.children;
+    }
+    // 如果没有父节点，则返回根节点
+    return nodes;
+  };
+
+  const renderNode = (node: NoteNode, level: number = 0, isRenderingSiblings: boolean = false) => {
+    // 如果没有选中的节点，只显示根节点
+    if (!selectedNodePath || selectedNodePath.length === 0) {
       if (level > 0) {
         return null;
       }
-    }
-    
-    const hasChildren = node.children.length > 0;
-    
-    return (
-      <div key={node.id} className="note-tree-node">
-        <div 
-          className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
-          onClick={() => onNodeSelect(node)}
-          style={{ paddingLeft: `${level * 15 + 10}px` }}
-        >
-          {hasChildren && (
-            <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
-          )}
-          <span className="node-title">{node.title}</span>
-          {node.synced === false && (
-            <span className="sync-status-icon" title="未同步">●</span>
+      
+      const hasChildren = node.children.length > 0;
+      
+      return (
+        <div key={node.id} className="note-tree-node">
+          <div 
+            className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
+            onClick={() => onNodeSelect(node)}
+            style={{ paddingLeft: `${level * 15 + 10}px` }}
+          >
+            {hasChildren && (
+              <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
+            )}
+            <span className="node-title">{node.title}</span>
+            {node.synced === false && (
+              <span className="sync-status-icon" title="未同步">●</span>
+            )}
+          </div>
+          {hasChildren && node.expanded && (
+            <div className="note-children">
+              {node.children.map(child => (
+                // 递归渲染子节点
+                <div key={child.id}>
+                  {renderNode(child, level + 1)}
+                </div>
+              ))}
+            </div>
           )}
         </div>
-        {hasChildren && node.expanded && (
-          <div className="note-children">
-            {node.children.map(child => (
-              // 递归渲染子节点
-              <div key={child.id}>
-                {renderNode(child, level + 1)}
-              </div>
-            ))}
+      );
+    }
+
+    // 获取选中的节点
+    const selectedNode = selectedNodePath[selectedNodePath.length - 1];
+    
+    // 如果是渲染兄弟节点，只渲染当前节点及其兄弟节点
+    if (isRenderingSiblings) {
+      // 只渲染当前节点及其兄弟节点
+      if (level === 0) {
+        const siblings = getSiblingNodes(nodes, selectedNode.id);
+        return (
+          <>
+            {siblings.map(sibling => {
+              const hasChildren = sibling.children.length > 0;
+              return (
+                <div key={sibling.id} className="note-tree-node">
+                  <div 
+                    className={`note-node-header ${selectedNodeId === sibling.id ? 'selected' : ''}`}
+                    onClick={() => onNodeSelect(sibling)}
+                    style={{ paddingLeft: `${level * 15 + 10}px` }}
+                  >
+                    {hasChildren && (
+                      <span className="expand-icon">{sibling.expanded ? '▼' : '▶'}</span>
+                    )}
+                    <span className="node-title">{sibling.title}</span>
+                    {sibling.synced === false && (
+                      <span className="sync-status-icon" title="未同步">●</span>
+                    )}
+                  </div>
+                  {/* 渲染选中节点的子节点 */}
+                  {sibling.id === selectedNode.id && hasChildren && sibling.expanded && (
+                    <div className="note-children">
+                      {sibling.children.map(child => (
+                        <div key={child.id}>
+                          {renderNode(child, level + 1, false)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        );
+      }
+      
+      return null;
+    }
+
+    // 计算当前节点与选中节点的关系
+    const nodeIndex = selectedNodePath.findIndex(n => n.id === node.id);
+    
+    // 如果是选中节点本身、其父节点、二级父节点、子节点，则显示
+    if (node.id === selectedNode.id ||  // 选中节点
+        (nodeIndex >= 0 && nodeIndex >= selectedNodePath.length - 3) ||  // 父节点和二级父节点
+        selectedNode.children.some(child => child.id === node.id)) {  // 直接子节点
+      
+      const hasChildren = node.children.length > 0;
+      
+      return (
+        <div key={node.id} className="note-tree-node">
+          <div 
+            className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
+            onClick={() => onNodeSelect(node)}
+            style={{ paddingLeft: `${level * 15 + 10}px` }}
+          >
+            {hasChildren && (
+              <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
+            )}
+            <span className="node-title">{node.title}</span>
+            {node.synced === false && (
+              <span className="sync-status-icon" title="未同步">●</span>
+            )}
           </div>
-        )}
-      </div>
-    );
+          {hasChildren && node.expanded && (
+            <div className="note-children">
+              {node.children.map(child => (
+                // 递归渲染子节点
+                <div key={child.id}>
+                  {renderNode(child, level + 1, false)}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // 对于其他节点，不显示
+    return null;
   };
 
   return (
     <div className="note-tree">
-      {nodes.map(node => (
-        <div key={node.id}>
-          {renderNode(node, 0)}
+      {selectedNodePath && selectedNodePath.length > 0 ? (
+        // 如果有选中的节点，渲染选中节点及其相关节点
+        <div>
+          {renderNode(selectedNodePath[0], 0, true)}
         </div>
-      ))}
+      ) : (
+        // 如果没有选中的节点，渲染根节点
+        nodes.map(node => (
+          <div key={node.id}>
+            {renderNode(node, 0)}
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -496,28 +571,48 @@ function NoteEditor({ note, onNoteChange }: {
                 const path = getNodePath(noteNodes, selectedNode.id);
                 return path ? (
                   <>
-                    {path.length > 4 && (
+                    {path.length > 3 && (
                       <>
+                        <span className="breadcrumb-item">{path[0].title}</span>
+                        <span className="breadcrumb-separator">/</span>
                         <span className="breadcrumb-item">...</span>
                         <span className="breadcrumb-separator">/</span>
                       </>
                     )}
-                    {path.slice(Math.max(0, path.length - 4)).map((node, index) => (
-                      <React.Fragment key={node.id}>
-                        <span 
-                          className={`breadcrumb-item ${node.id === selectedNode.id ? 'active' : ''}`}
-                          onClick={() => {
-                            const targetNode = findNode(noteNodes, node.id);
-                            if (targetNode) handleNodeSelect(targetNode);
-                          }}
-                        >
-                          {node.title}
-                        </span>
-                        {index < Math.min(path.length, 4) - 1 && (
-                          <span className="breadcrumb-separator">/</span>
-                        )}
-                      </React.Fragment>
-                    ))}
+                    {path.length > 3 
+                      ? path.slice(-2).map((node, index) => (
+                          <React.Fragment key={node.id}>
+                            <span 
+                              className={`breadcrumb-item ${node.id === selectedNode.id ? 'active' : ''}`}
+                              onClick={() => {
+                                const targetNode = findNode(noteNodes, node.id);
+                                if (targetNode) handleNodeSelect(targetNode);
+                              }}
+                            >
+                              {node.title}
+                            </span>
+                            {index < 1 && (
+                              <span className="breadcrumb-separator">/</span>
+                            )}
+                          </React.Fragment>
+                        ))
+                      : path.map((node, index) => (
+                          <React.Fragment key={node.id}>
+                            <span 
+                              className={`breadcrumb-item ${node.id === selectedNode.id ? 'active' : ''}`}
+                              onClick={() => {
+                                const targetNode = findNode(noteNodes, node.id);
+                                if (targetNode) handleNodeSelect(targetNode);
+                              }}
+                            >
+                              {node.title}
+                            </span>
+                            {index < path.length - 1 && (
+                              <span className="breadcrumb-separator">/</span>
+                            )}
+                          </React.Fragment>
+                        ))
+                    }
                   </>
                 ) : null;
               })()
@@ -528,7 +623,6 @@ function NoteEditor({ note, onNoteChange }: {
             nodes={isSearching ? searchResults : noteNodes} 
             onNodeSelect={handleNodeSelect} 
             selectedNodeId={selectedNode?.id || null}
-            maxLevels={2}
             selectedNodePath={selectedNode ? getNodePath(noteNodes, selectedNode.id) || undefined : undefined}
           />
         </div>
