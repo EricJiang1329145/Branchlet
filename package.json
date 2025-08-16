@@ -10,10 +10,12 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@heroui/react": "^2.8.2",
     "@octokit/rest": "^20.0.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-fs": "^2.4.1",
     "@tauri-apps/plugin-opener": "^2",
+    "framer-motion": "^12.23.12",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "uuid": "^11.1.0"
