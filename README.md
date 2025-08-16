@@ -1,19 +1,103 @@
-# Tauri + React + Typescript
+# Branchlet - 笔记应用
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Branchlet 是一个基于 Tauri、React 和 TypeScript 构建的桌面笔记应用，具有 GitHub 同步功能。它允许您创建和管理分层笔记，并将笔记同步到 GitHub 仓库进行备份和跨设备访问。
 
-## Recommended IDE Setup
+## 功能特性
+
+- **分层笔记管理**：以树形结构组织笔记，支持无限层级的子笔记
+- **GitHub 同步**：自动将笔记同步到 GitHub 仓库进行备份和跨设备访问
+- **实时编辑**：所见即所得的笔记编辑体验
+- **本地存储**：所有笔记数据都存储在本地，确保隐私安全
+- **跨平台支持**：支持 Windows、macOS 和 Linux 操作系统
+
+## 技术栈
+
+- [Tauri](https://tauri.app/) - 构建安全、快速且体积小的桌面应用程序
+- [React](https://reactjs.org/) - 用于构建用户界面的 JavaScript 库
+- [TypeScript](https://www.typescriptlang.org/) - JavaScript 的超集，添加了静态类型定义
+- [Vite](https://vitejs.dev/) - 快速的构建工具
+
+## 推荐的 IDE 设置
 
 - [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 
-## GitHub同步功能
+## 快速开始
 
-现在应用支持自动从GitHub同步笔记。使用方法：
+### 前置要求
 
-1. 点击界面右上角的"设置"按钮
-2. 在弹出的设置框中输入您的GitHub Personal Access Token
-3. 点击"保存"按钮
+- [Node.js](https://nodejs.org/) (v16 或更高版本)
+- [Rust](https://www.rust-lang.org/) (通过 rustup 安装)
 
-应用会自动获取您的GitHub用户名并同步笔记。每次打开应用时，如果已设置token，应用会自动从GitHub拉取最新的笔记。
+### 安装依赖
 
-注意：您需要在GitHub上创建一个Personal Access Token，可以在[这里](https://github.com/settings/tokens/new)创建。
+```bash
+npm install
+```
+
+### 开发模式
+
+```bash
+npm run dev
+```
+
+### 构建应用
+
+```bash
+npm run build
+```
+
+### 预览构建
+
+```bash
+npm run preview
+```
+
+### 运行桌面应用
+
+```bash
+npm run tauri dev
+```
+
+### 构建桌面应用
+
+```bash
+npm run tauri build
+```
+
+## GitHub 同步设置
+
+Branchlet 支持将笔记自动同步到 GitHub 仓库进行备份和跨设备访问。
+
+1. 在 GitHub 上创建一个 Personal Access Token：
+   - 访问 [GitHub Token 设置页面](https://github.com/settings/tokens/new)
+   - 选择适当的权限（至少需要 `repo` 权限）
+   - 生成 token 并保存
+
+2. 在应用中配置 GitHub 同步：
+   - 点击界面右上角的"设置"按钮
+   - 在弹出的设置框中输入您的 GitHub Personal Access Token
+   - 点击"保存"按钮
+
+3. 应用会自动创建一个名为 `Branchlet-nts` 的仓库用于存储笔记。
+
+应用会在每次启动时自动从 GitHub 拉取最新的笔记，您也可以手动点击"拉取"按钮同步笔记。点击"推送"按钮可以将本地更改推送到 GitHub。
+
+## 项目结构
+
+```
+src/
+├── App.tsx          # 主应用组件
+├── GithubSync.tsx    # GitHub 同步功能组件
+├── main.tsx          # 应用入口点
+└── vite-env.d.ts     # TypeScript 声明文件
+
+src-tauri/
+├── src/
+│   ├── main.rs       # Tauri 后端主文件
+│   └── lib.rs        # Tauri 命令模块
+└── tauri.conf.json   # Tauri 配置文件
+```
+
+## 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
