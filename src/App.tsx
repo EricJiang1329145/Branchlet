@@ -3,16 +3,7 @@ import "./App.css";
 import GithubSync from "./GithubSync";
 import { v4 as uuidv4 } from "uuid";
 import NoteStructureManager from "./NoteStructureManager";
-
-// 笔记节点类型定义
-interface NoteNode {
-  id: string;
-  title: string;
-  content: string;
-  children: NoteNode[];
-  expanded: boolean;
-  synced?: boolean; // 添加同步状态字段，标记笔记是否已同步到GitHub
-}
+import { NoteNode } from "./types";
 
 // 笔记树组件
 function NoteTree({ nodes, onNodeSelect, selectedNodeId, maxLevels = 2, selectedNodePath }: { 
@@ -197,6 +188,11 @@ function NoteEditor({ note, onNoteChange }: {
   const [selectedNode, setSelectedNode] = useState<NoteNode | null>(null);
   const noteStructureManager = useRef<NoteStructureManager>(new NoteStructureManager());
   const githubSyncRef = useRef<any>(null);
+  
+  // 搜索相关的状态
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<NoteNode[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // 获取节点路径的辅助函数
   const getNodePath = (nodes: NoteNode[], targetId: string): NoteNode[] | null => {
@@ -229,6 +225,40 @@ function NoteEditor({ note, onNoteChange }: {
           return found;
         }
       }
+    }
+  };
+
+  // 搜索笔记的函数
+  const searchNotes = (nodes: NoteNode[], term: string): NoteNode[] => {
+    const results: NoteNode[] = [];
+    
+    const searchRecursive = (node: NoteNode) => {
+      // 检查当前节点是否匹配搜索词
+      if (node.title.toLowerCase().includes(term.toLowerCase()) || 
+          node.content.toLowerCase().includes(term.toLowerCase())) {
+        results.push(node);
+      }
+      
+      // 递归搜索子节点
+      node.children.forEach(child => searchRecursive(child));
+    };
+    
+    nodes.forEach(node => searchRecursive(node));
+    return results;
+  };
+
+  // 处理搜索输入变化
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+    
+    if (term.trim() !== '') {
+      setIsSearching(true);
+      const results = searchNotes(noteNodes, term);
+      setSearchResults(results);
+    } else {
+      setIsSearching(false);
+      setSearchResults([]);
     }
   };
 
@@ -428,12 +458,7 @@ function NoteEditor({ note, onNoteChange }: {
     }
   };
 
-  // 重置仓库到出厂默认状态
-  const handleResetRepository = () => {
-    if (githubSyncRef.current && githubSyncRef.current.resetRepository) {
-      githubSyncRef.current.resetRepository();
-    }
-  };
+
 
   return (
     <div className="app-container">
@@ -451,6 +476,17 @@ function NoteEditor({ note, onNoteChange }: {
         <div className="note-sidebar">
           <div className="sidebar-header">
             <button className="new-note-btn" onClick={handleAddNote}>新建笔记</button>
+          </div>
+          
+          {/* 搜索框 */}
+          <div className="search-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="搜索笔记标题或内容..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
           </div>
           
           {/* 面包屑导航 */}
@@ -489,7 +525,7 @@ function NoteEditor({ note, onNoteChange }: {
           </div>
           
           <NoteTree 
-            nodes={noteNodes} 
+            nodes={isSearching ? searchResults : noteNodes} 
             onNodeSelect={handleNodeSelect} 
             selectedNodeId={selectedNode?.id || null}
             maxLevels={2}

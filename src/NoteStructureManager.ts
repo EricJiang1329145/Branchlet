@@ -1,4 +1,4 @@
-import type { NoteNode } from './App';
+import type { NoteNode } from './types';
 
 // 定义笔记结构类型
 interface NoteStructure {
@@ -27,12 +27,12 @@ class NoteStructureManager {
     notes.forEach(note => {
       this.structure[note.id] = {
         parentId,
-        childIds: note.children.map(child => child.id)
+        childIds: note.children.map((child: NoteNode) => child.id)
       };
       
       // 递归处理子笔记
       if (note.children.length > 0) {
-        this.buildStructure(note.children as NoteNode[], note.id);
+        this.buildStructure(note.children, note.id);
       }
     });
   }
@@ -58,7 +58,7 @@ class NoteStructureManager {
   
   // 删除笔记
   deleteNote(noteId: string) {
-    const note = this.structure[noteId];
+    const note: NoteStructure[string] | undefined = this.structure[noteId];
     if (!note) return;
     
     // 从父笔记的子笔记列表中移除
@@ -78,7 +78,7 @@ class NoteStructureManager {
   
   // 移动笔记
   moveNote(noteId: string, newParentId: string | null) {
-    const note = this.structure[noteId];
+    const note: NoteStructure[string] | undefined = this.structure[noteId];
     if (!note) return;
     
     // 从原父笔记的子笔记列表中移除
@@ -103,7 +103,7 @@ class NoteStructureManager {
     
     while (currentId) {
       path.unshift(currentId);
-      const note = this.structure[currentId];
+      const note: NoteStructure[string] | undefined = this.structure[currentId];
       currentId = note ? note.parentId : null;
     }
     
@@ -113,23 +113,34 @@ class NoteStructureManager {
   // 根据结构重建笔记树
   rebuildNoteTree(notes: Record<string, NoteNode>): NoteNode[] {
     // 找到根笔记（没有父笔记的笔记）
-    const rootIds = Object.keys(this.structure).filter(id => 
+    const rootIds: string[] = Object.keys(this.structure).filter((id: string) => 
       this.structure[id].parentId === null
     );
     
     // 递归构建笔记树
     const buildTree = (noteId: string): NoteNode => {
       const noteStruct = this.structure[noteId];
-      const note = notes[noteId];
+      const noteData: NoteNode | undefined = notes[noteId];
       
-      if (!note) {
+      if (!noteData) {
         throw new Error(`笔记内容未找到: ${noteId}`);
       }
       
-      return {
-        ...note,
-        children: noteStruct.childIds.map(childId => buildTree(childId))
+      // 创建新的笔记对象，避免直接引用
+      const noteWithoutChildren: Omit<NoteNode, 'children'> = {
+        id: noteData.id,
+        title: noteData.title,
+        content: noteData.content,
+        expanded: noteData.expanded ?? false,
+        synced: noteData.synced ?? false
       };
+      
+      const note: NoteNode = {
+        ...noteWithoutChildren,
+        children: noteStruct.childIds.map((childId: string) => buildTree(childId))
+      };
+      
+      return note;
     };
     
     return rootIds.map((id: string) => buildTree(id));

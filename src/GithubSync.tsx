@@ -222,7 +222,7 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
         
         // 解码Base64内容，处理非Latin1字符
         const content = decodeURIComponent(escape(atob((fileData as any).content)));
-        const note = JSON.parse(content);
+        const note: any = JSON.parse(content);
         noteContents[note.id] = note;
       });
       

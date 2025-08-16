@@ -330,6 +330,34 @@
   background-color: #0b5ed7;
 }
 
+/* 搜索容器 */
+.search-container {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #404040;
+}
+
+/* 搜索输入框 */
+.search-input {
+  width: calc(100% - 1.5rem);
+  padding: 0.6rem;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  margin: 0 0.5rem 0 0.2rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+.search-input::placeholder {
+  color: #999;
+}
+
 /* 面包屑导航 */
 .breadcrumb {
   padding: 0.5rem 1rem;
