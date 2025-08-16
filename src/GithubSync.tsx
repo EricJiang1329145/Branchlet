@@ -334,9 +334,24 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
         }));
       }
       
+      // 递归获取所有笔记节点的辅助函数
+      const getAllNotes = (nodes: any[]): any[] => {
+        let allNotes: any[] = [];
+        for (const node of nodes) {
+          allNotes.push(node);
+          if (node.children && node.children.length > 0) {
+            allNotes = allNotes.concat(getAllNotes(node.children));
+          }
+        }
+        return allNotes;
+      };
+
+      // 获取所有笔记（包括子笔记）
+      const allNotes = getAllNotes(notes);
+
       // 为每个笔记创建或更新文件
       // 逐个推送笔记以避免触发速率限制
-      for (const note of notes) {
+      for (const note of allNotes) {
         const fileName = `${note.id}.json`;
         // 使用encodeURIComponent和unescape处理非Latin1字符
         const content = btoa(unescape(encodeURIComponent(JSON.stringify({
