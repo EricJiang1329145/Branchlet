@@ -4,6 +4,7 @@ import GithubSync from "./GithubSync";
 import { v4 as uuidv4 } from "uuid";
 import NoteStructureManager from "./NoteStructureManager";
 import { NoteNode } from "./types";
+import { similarity } from "./levenshtein";
 
 // 笔记树组件
 function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: { 
@@ -268,6 +269,7 @@ function NoteEditor({ note, onNoteChange }: {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<NoteNode[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
   // 获取节点路径的辅助函数
   const getNodePath = (nodes: NoteNode[], targetId: string): NoteNode[] | null => {
@@ -307,11 +309,27 @@ function NoteEditor({ note, onNoteChange }: {
   const searchNotes = (nodes: NoteNode[], term: string): NoteNode[] => {
     const results: NoteNode[] = [];
     
+    // 如果搜索词为空，返回空结果
+    if (!term.trim()) {
+      return results;
+    }
+    
     const searchRecursive = (node: NoteNode) => {
-      // 检查当前节点是否匹配搜索词
-      if (node.title.toLowerCase().includes(term.toLowerCase()) || 
-          node.content.toLowerCase().includes(term.toLowerCase())) {
-        results.push(node);
+      // 计算标题和内容的相似度
+      const titleSimilarity = similarity(node.title.toLowerCase(), term.toLowerCase());
+      const contentSimilarity = similarity(node.content.toLowerCase(), term.toLowerCase());
+      
+      // 设置相似度阈值（例如0.3）
+      const SIMILARITY_THRESHOLD = 0.3;
+      
+      // 如果标题或内容的相似度超过阈值，则认为匹配
+      if (titleSimilarity >= SIMILARITY_THRESHOLD || 
+          contentSimilarity >= SIMILARITY_THRESHOLD) {
+        results.push({
+          ...node,
+          // 添加相似度信息用于排序
+          similarity: Math.max(titleSimilarity, contentSimilarity)
+        });
       }
       
       // 递归搜索子节点
@@ -319,7 +337,9 @@ function NoteEditor({ note, onNoteChange }: {
     };
     
     nodes.forEach(node => searchRecursive(node));
-    return results;
+    
+    // 根据相似度对结果进行排序（从高到低）
+    return results.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
   };
 
   // 处理搜索输入变化
@@ -331,6 +351,13 @@ function NoteEditor({ note, onNoteChange }: {
       setIsSearching(true);
       const results = searchNotes(noteNodes, term);
       setSearchResults(results);
+      
+      // 更新搜索历史记录
+      if (!searchHistory.includes(term)) {
+        const newHistory = [term, ...searchHistory.slice(0, 9)]; // 限制历史记录数量为10条
+        setSearchHistory(newHistory);
+        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+      }
     } else {
       setIsSearching(false);
       setSearchResults([]);
@@ -356,6 +383,16 @@ function NoteEditor({ note, onNoteChange }: {
     
     // 初始化笔记结构管理器
     noteStructureManager.current.initializeStructure(noteNodes);
+    
+    // 从localStorage中获取搜索历史记录
+    const savedSearchHistory = localStorage.getItem('searchHistory');
+    if (savedSearchHistory) {
+      try {
+        setSearchHistory(JSON.parse(savedSearchHistory));
+      } catch (e) {
+        console.error('Failed to parse search history:', e);
+      }
+    }
   }, []);
 
   // 处理节点选择
@@ -562,6 +599,28 @@ function NoteEditor({ note, onNoteChange }: {
               value={searchTerm}
               onChange={handleSearchChange}
             />
+            
+            {/* 搜索历史记录 */}
+            {searchHistory.length > 0 && (
+              <div className="search-history">
+                <h4>搜索历史</h4>
+                <ul>
+                  {searchHistory.map((term, index) => (
+                    <li 
+                      key={index} 
+                      onClick={() => {
+                        setSearchTerm(term);
+                        setIsSearching(true);
+                        const results = searchNotes(noteNodes, term);
+                        setSearchResults(results);
+                      }}
+                    >
+                      {term}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           
           {/* 面包屑导航 */}

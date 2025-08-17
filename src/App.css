@@ -358,6 +358,41 @@
   color: #999;
 }
 
+/* 搜索历史记录 */
+.search-history {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #2d2d2d;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.search-history h4 {
+  margin: 0 0 10px 0;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.search-history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.search-history li {
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.search-history li:hover {
+  background-color: #404040;
+  color: #e0e0e0;
+}
+
 /* 面包屑导航 */
 .breadcrumb {
   padding: 0.5rem 1rem;
