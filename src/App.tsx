@@ -15,29 +15,44 @@ const flattenNoteTree = (nodes: NoteNode[], level: number = 0, parentPath: NoteN
   if (selectedNodePath && selectedNodePath.length > 0) {
     const selectedNode = selectedNodePath[selectedNodePath.length - 1];
     
+    // 计算需要显示的路径节点（最多显示4个节点：选中节点及其向上3个层级）
+    const pathToShow = selectedNodePath.length > 4 
+      ? selectedNodePath.slice(selectedNodePath.length - 4) 
+      : selectedNodePath;
+    
+    // 获取需要显示的节点ID集合
+    const nodesToShow = new Set(pathToShow.map(n => n.id));
+    
+    // 添加选中节点的兄弟节点
+    if (selectedNodePath.length > 1) {
+      const parentNode = selectedNodePath[selectedNodePath.length - 2];
+      parentNode.children.forEach(child => nodesToShow.add(child.id));
+    } else {
+      // 如果选中的是根节点，添加所有根节点
+      nodes.forEach(node => nodesToShow.add(node.id));
+    }
+    
+    // 添加选中节点的子节点
+    selectedNode.children.forEach(child => nodesToShow.add(child.id));
+    
     nodes.forEach(node => {
-      // 计算当前节点与选中节点的关系
-      const nodeIndex = selectedNodePath.findIndex(n => n.id === node.id);
-      
       // 检查当前节点是否应该显示
-      // 显示条件：选中节点本身、选中节点的所有父级节点、选中节点的所有子级节点（递归）
-      const isNodeInPath = nodeIndex >= 0;  // 节点是否在选中路径上
-      const isChildOfSelected = selectedNode.children.some(child => child.id === node.id);  // 是否为选中节点的直接子节点
-      
-      // 如果节点在选中路径上，或者是选中节点的直接子节点，则显示
-      if (node.id === selectedNode.id || isNodeInPath || isChildOfSelected) {
+      if (nodesToShow.has(node.id)) {
         result.push({ node, level, parentPath });
         
         // 如果节点是展开的且有子节点，则递归处理子节点
         if (node.expanded && node.children.length > 0) {
           result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
         }
-      }
-      // 如果当前节点是选中节点的祖先节点，也需要递归处理其子节点以确保完整显示
-      else if (isNodeInPath) {
-        // 如果节点是展开的且有子节点，则递归处理子节点
+      } else {
+        // 即使节点不在显示集合中，如果它有展开的子节点且子节点在显示集合中，也需要处理
         if (node.expanded && node.children.length > 0) {
-          result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
+          const childResults = flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath);
+          // 只有当子节点有需要显示的内容时才添加当前节点
+          if (childResults.length > 0) {
+            result.push({ node, level, parentPath });
+            result = result.concat(childResults);
+          }
         }
       }
     });
