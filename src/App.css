@@ -27,6 +27,54 @@
   -webkit-text-size-adjust: 100%;
 }
 
+/* 笔记树容器 */
+.note-tree {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* 笔记节点头部 */
+.note-node-header {
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #333;
+}
+
+.note-node-header:hover {
+  background-color: #333;
+}
+
+.note-node-header.selected {
+  background-color: #444;
+  font-weight: bold;
+}
+
+/* 展开/折叠图标 */
+.expand-icon {
+  margin-right: 5px;
+  width: 15px;
+  text-align: center;
+}
+
+/* 节点标题 */
+.node-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 同步状态图标 */
+.sync-status-icon {
+  margin-left: 5px;
+  color: #ffcc00;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
 /* 应用容器 */
 .app-container {
   height: 100vh;

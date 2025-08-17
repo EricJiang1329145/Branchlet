@@ -5,6 +5,94 @@ import { v4 as uuidv4 } from "uuid";
 import NoteStructureManager from "./NoteStructureManager";
 import { NoteNode } from "./types";
 import { similarity } from "./levenshtein";
+import { FixedSizeList as List } from 'react-window';
+
+// 扁平化笔记树结构
+const flattenNoteTree = (nodes: NoteNode[], level: number = 0, parentPath: NoteNode[] = [], selectedNodePath?: NoteNode[]): {node: NoteNode, level: number, parentPath: NoteNode[]}[] => {
+  let result: {node: NoteNode, level: number, parentPath: NoteNode[]}[] = [];
+  
+  // 如果有选中的节点，计算需要显示的节点
+  if (selectedNodePath && selectedNodePath.length > 0) {
+    const selectedNode = selectedNodePath[selectedNodePath.length - 1];
+    
+    nodes.forEach(node => {
+      // 计算当前节点与选中节点的关系
+      const nodeIndex = selectedNodePath.findIndex(n => n.id === node.id);
+      
+      // 检查当前节点是否应该显示
+      // 显示条件：选中节点本身、选中节点的所有父级节点、选中节点的所有子级节点（递归）
+      const isNodeInPath = nodeIndex >= 0;  // 节点是否在选中路径上
+      const isChildOfSelected = selectedNode.children.some(child => child.id === node.id);  // 是否为选中节点的直接子节点
+      
+      // 如果节点在选中路径上，或者是选中节点的直接子节点，则显示
+      if (node.id === selectedNode.id || isNodeInPath || isChildOfSelected) {
+        result.push({ node, level, parentPath });
+        
+        // 如果节点是展开的且有子节点，则递归处理子节点
+        if (node.expanded && node.children.length > 0) {
+          result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
+        }
+      }
+      // 如果当前节点是选中节点的祖先节点，也需要递归处理其子节点以确保完整显示
+      else if (isNodeInPath) {
+        // 如果节点是展开的且有子节点，则递归处理子节点
+        if (node.expanded && node.children.length > 0) {
+          result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
+        }
+      }
+    });
+  } else {
+    // 如果没有选中的节点，显示所有根节点及其展开的子节点
+    nodes.forEach(node => {
+      result.push({ node, level, parentPath });
+      
+      // 如果节点是展开的且有子节点，则递归处理子节点
+      if (node.expanded && node.children.length > 0) {
+        result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
+      }
+    });
+  }
+  
+  return result;
+};
+
+// 笔记树节点渲染组件
+const NoteTreeNode = ({ 
+  data, 
+  index, 
+  style 
+}: { 
+  data: { 
+    flattenedNodes: {node: NoteNode, level: number, parentPath: NoteNode[]}[], 
+    selectedNodeId: string | null,
+    onNodeSelect: (node: NoteNode) => void
+  }, 
+  index: number, 
+  style: React.CSSProperties 
+}) => {
+  const { flattenedNodes, selectedNodeId, onNodeSelect } = data;
+  const { node, level } = flattenedNodes[index];
+  
+  const hasChildren = node.children.length > 0;
+  
+  return (
+    <div style={style}>
+      <div 
+        className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
+        onClick={() => onNodeSelect(node)}
+        style={{ paddingLeft: `${level * 15 + 10}px` }}
+      >
+        {hasChildren && (
+          <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
+        )}
+        <span className="node-title">{node.title}</span>
+        {node.synced === false && (
+          <span className="sync-status-icon" title="未同步">●</span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // 笔记树组件
 function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: { 
@@ -13,174 +101,24 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: {
   selectedNodeId: string | null;
   selectedNodePath?: NoteNode[];
 }) {
-  // 获取节点的父节点
-  const getParentNode = (nodes: NoteNode[], targetId: string): NoteNode | null => {
-    for (const node of nodes) {
-      if (node.children.some(child => child.id === targetId)) {
-        return node;
-      }
-      
-      if (node.children.length > 0) {
-        const parent = getParentNode(node.children, targetId);
-        if (parent) return parent;
-      }
-    }
-    return null;
-  };
-
-  // 获取节点的所有兄弟节点
-  const getSiblingNodes = (nodes: NoteNode[], targetId: string): NoteNode[] => {
-    const parent = getParentNode(nodes, targetId);
-    if (parent) {
-      return parent.children;
-    }
-    // 如果没有父节点，则返回根节点
-    return nodes;
-  };
-
-  const renderNode = (node: NoteNode, level: number = 0, isRenderingSiblings: boolean = false) => {
-    // 如果没有选中的节点，只显示根节点
-    if (!selectedNodePath || selectedNodePath.length === 0) {
-      if (level > 0) {
-        return null;
-      }
-      
-      const hasChildren = node.children.length > 0;
-      
-      return (
-        <div key={node.id} className="note-tree-node">
-          <div 
-            className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
-            onClick={() => onNodeSelect(node)}
-            style={{ paddingLeft: `${level * 15 + 10}px` }}
-          >
-            {hasChildren && (
-              <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
-            )}
-            <span className="node-title">{node.title}</span>
-            {node.synced === false && (
-              <span className="sync-status-icon" title="未同步">●</span>
-            )}
-          </div>
-          {hasChildren && node.expanded && (
-            <div className="note-children">
-              {node.children.map(child => (
-                // 递归渲染子节点
-                <div key={child.id}>
-                  {renderNode(child, level + 1)}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // 获取选中的节点
-    const selectedNode = selectedNodePath[selectedNodePath.length - 1];
-    
-    // 如果是渲染兄弟节点，只渲染当前节点及其兄弟节点
-    if (isRenderingSiblings) {
-      // 只渲染当前节点及其兄弟节点
-      if (level === 0) {
-        const siblings = getSiblingNodes(nodes, selectedNode.id);
-        return (
-          <>
-            {siblings.map(sibling => {
-              const hasChildren = sibling.children.length > 0;
-              return (
-                <div key={sibling.id} className="note-tree-node">
-                  <div 
-                    className={`note-node-header ${selectedNodeId === sibling.id ? 'selected' : ''}`}
-                    onClick={() => onNodeSelect(sibling)}
-                    style={{ paddingLeft: `${level * 15 + 10}px` }}
-                  >
-                    {hasChildren && (
-                      <span className="expand-icon">{sibling.expanded ? '▼' : '▶'}</span>
-                    )}
-                    <span className="node-title">{sibling.title}</span>
-                    {sibling.synced === false && (
-                      <span className="sync-status-icon" title="未同步">●</span>
-                    )}
-                  </div>
-                  {/* 渲染选中节点的子节点 */}
-                  {sibling.id === selectedNode.id && hasChildren && sibling.expanded && (
-                    <div className="note-children">
-                      {sibling.children.map(child => (
-                        <div key={child.id}>
-                          {renderNode(child, level + 1, false)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </>
-        );
-      }
-      
-      return null;
-    }
-
-    // 计算当前节点与选中节点的关系
-    const nodeIndex = selectedNodePath.findIndex(n => n.id === node.id);
-    
-    // 如果是选中节点本身、其父节点、二级父节点、子节点，则显示
-    if (node.id === selectedNode.id ||  // 选中节点
-        (nodeIndex >= 0 && nodeIndex >= selectedNodePath.length - 3) ||  // 父节点和二级父节点
-        selectedNode.children.some(child => child.id === node.id)) {  // 直接子节点
-      
-      const hasChildren = node.children.length > 0;
-      
-      return (
-        <div key={node.id} className="note-tree-node">
-          <div 
-            className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
-            onClick={() => onNodeSelect(node)}
-            style={{ paddingLeft: `${level * 15 + 10}px` }}
-          >
-            {hasChildren && (
-              <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
-            )}
-            <span className="node-title">{node.title}</span>
-            {node.synced === false && (
-              <span className="sync-status-icon" title="未同步">●</span>
-            )}
-          </div>
-          {hasChildren && node.expanded && (
-            <div className="note-children">
-              {node.children.map(child => (
-                // 递归渲染子节点
-                <div key={child.id}>
-                  {renderNode(child, level + 1, false)}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-    
-    // 对于其他节点，不显示
-    return null;
-  };
-
+  // 扁平化当前显示的节点
+  const flattenedNodes = flattenNoteTree(nodes, 0, [], selectedNodePath);
+  
   return (
     <div className="note-tree">
-      {selectedNodePath && selectedNodePath.length > 0 ? (
-        // 如果有选中的节点，渲染选中节点及其相关节点
-        <div>
-          {renderNode(selectedNodePath[0], 0, true)}
-        </div>
-      ) : (
-        // 如果没有选中的节点，渲染根节点
-        nodes.map(node => (
-          <div key={node.id}>
-            {renderNode(node, 0)}
-          </div>
-        ))
-      )}
+      <List
+        height={600} // 设置容器高度
+        itemCount={flattenedNodes.length}
+        itemSize={35} // 每个节点的高度
+        itemData={{
+          flattenedNodes,
+          selectedNodeId,
+          onNodeSelect
+        }}
+        width="100%"
+      >
+        {NoteTreeNode}
+      </List>
     </div>
   );
 }
@@ -315,20 +253,22 @@ function NoteEditor({ note, onNoteChange }: {
     }
     
     const searchRecursive = (node: NoteNode) => {
-      // 计算标题和内容的相似度
+      // 计算标题、内容和UUID的相似度
       const titleSimilarity = similarity(node.title.toLowerCase(), term.toLowerCase());
       const contentSimilarity = similarity(node.content.toLowerCase(), term.toLowerCase());
+      const uuidSimilarity = similarity(node.id.toLowerCase(), term.toLowerCase());
       
       // 设置相似度阈值（例如0.3）
       const SIMILARITY_THRESHOLD = 0.3;
       
-      // 如果标题或内容的相似度超过阈值，则认为匹配
+      // 如果标题、内容或UUID的相似度超过阈值，则认为匹配
       if (titleSimilarity >= SIMILARITY_THRESHOLD || 
-          contentSimilarity >= SIMILARITY_THRESHOLD) {
+          contentSimilarity >= SIMILARITY_THRESHOLD ||
+          uuidSimilarity >= SIMILARITY_THRESHOLD) {
         results.push({
           ...node,
           // 添加相似度信息用于排序
-          similarity: Math.max(titleSimilarity, contentSimilarity)
+          similarity: Math.max(titleSimilarity, contentSimilarity, uuidSimilarity)
         });
       }
       
@@ -351,16 +291,21 @@ function NoteEditor({ note, onNoteChange }: {
       setIsSearching(true);
       const results = searchNotes(noteNodes, term);
       setSearchResults(results);
-      
+    } else {
+      setIsSearching(false);
+      setSearchResults([]);
+    }
+  };
+
+  // 处理搜索提交
+  const handleSearchSubmit = (term: string) => {
+    if (term.trim() !== '') {
       // 更新搜索历史记录
       if (!searchHistory.includes(term)) {
         const newHistory = [term, ...searchHistory.slice(0, 9)]; // 限制历史记录数量为10条
         setSearchHistory(newHistory);
         localStorage.setItem('searchHistory', JSON.stringify(newHistory));
       }
-    } else {
-      setIsSearching(false);
-      setSearchResults([]);
     }
   };
 
@@ -446,12 +391,12 @@ function NoteEditor({ note, onNoteChange }: {
       synced: false // 新笔记默认未同步
     };
 
-    // 如果没有选中任何笔记，则将新笔记添加为"我的笔记"的子笔记
+    // 如果没有选中任何笔记，则将新笔记添加为根节点的子笔记
     if (!selectedNode) {
       const addNoteToRoot = (nodes: NoteNode[]): NoteNode[] => {
         return nodes.map(node => {
-          // 如果是根节点"我的笔记"，则添加新笔记作为其子节点
-          if (node.title === '我的笔记') {
+          // 如果是根节点，则添加新笔记作为其子节点
+          if (node.id === 'root') {
             // 更新笔记结构
             noteStructureManager.current.addNote(newId, node.id);
             return { ...node, children: [...node.children, newNote], expanded: true };
@@ -491,7 +436,46 @@ function NoteEditor({ note, onNoteChange }: {
       });
     };
 
-    setNoteNodes(addNoteToParent(noteNodes));
+    // 查找选中的节点是否仍然存在于笔记树中
+    const findSelectedNode = (nodes: NoteNode[]): NoteNode | undefined => {
+      for (const node of nodes) {
+        if (node.id === selectedNode.id) {
+          return node;
+        }
+        if (node.children.length > 0) {
+          const found = findSelectedNode(node.children);
+          if (found) return found;
+        }
+      }
+    };
+
+    // 如果选中的节点仍然存在，则在该节点下添加新笔记
+    // 否则，将新笔记添加为根节点的子笔记
+    const targetNode = findSelectedNode(noteNodes);
+    if (targetNode) {
+      setNoteNodes(addNoteToParent(noteNodes));
+    } else {
+      // 如果选中的节点不存在，则将新笔记添加为根节点的子笔记
+      const addNoteToRoot = (nodes: NoteNode[]): NoteNode[] => {
+        return nodes.map(node => {
+          // 如果是根节点，则添加新笔记作为其子节点
+          if (node.id === 'root') {
+            // 更新笔记结构
+            noteStructureManager.current.addNote(newId, node.id);
+            return { ...node, children: [...node.children, newNote], expanded: true };
+          }
+          
+          // 递归处理子节点
+          if (node.children.length > 0) {
+            return { ...node, children: addNoteToRoot(node.children) };
+          }
+          
+          return node;
+        });
+      };
+      
+      setNoteNodes(addNoteToRoot(noteNodes));
+    }
     setSelectedNode(newNote);
   };
 
@@ -595,9 +579,14 @@ function NoteEditor({ note, onNoteChange }: {
             <input
               type="text"
               className="search-input"
-              placeholder="搜索笔记标题或内容..."
+              placeholder="搜索笔记标题、内容或UUID..."
               value={searchTerm}
               onChange={handleSearchChange}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearchSubmit(searchTerm);
+                }
+              }}
             />
             
             {/* 搜索历史记录 */}
