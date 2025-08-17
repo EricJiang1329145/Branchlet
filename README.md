@@ -34,6 +34,32 @@ Branchlet 是一个基于 Tauri、React 和 TypeScript 构建的桌面笔记应�
 npm install
 ```
 
+### 项目依赖
+
+#### 生产环境依赖
+
+- `@heroui/react`: ^2.8.2
+- `@octokit/rest`: ^20.0.0
+- `@tauri-apps/api`: ^2
+- `@tauri-apps/plugin-fs`: ^2.4.1
+- `@tauri-apps/plugin-opener`: ^2
+- `framer-motion`: ^12.23.12
+- `react`: ^18.3.1
+- `react-dom`: ^18.3.1
+- `react-window`: ^1.8.11
+- `uuid`: ^11.1.0
+
+#### 开发环境依赖
+
+- `@tauri-apps/cli`: ^2
+- `@types/react`: ^18.3.1
+- `@types/react-dom`: ^18.3.1
+- `@types/react-window`: ^1.8.8
+- `@types/uuid`: ^10.0.0
+- `@vitejs/plugin-react`: ^4.3.4
+- `typescript`: ~5.6.2
+- `vite`: ^6.0.3
+
 ### 开发模式
 
 ```bash
