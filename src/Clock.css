@@ -19,6 +19,8 @@
   color: #e0e0e0;
   text-align: center;
   margin-top: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 /* 时钟的分隔符 */

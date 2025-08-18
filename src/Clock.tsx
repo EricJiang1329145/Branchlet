@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Clock.css';
+import { getLunar } from 'chinese-lunar-calendar';
 
 type FlipperProps = {
   currentTime: string;
@@ -42,7 +43,11 @@ const getDateString = (date: Date): string => {
   const day = date.getDate();
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
   const weekday = weekdays[date.getDay()];
-  return `${year}年${month}月${day}日 星期${weekday}`;
+  
+  // 获取农历信息
+  const lunarInfo = getLunar(year, month, day);
+  
+  return `${year}年${month}月${day}日 星期${weekday} ${lunarInfo.dateStr}`;
 };
 
 const Clock: React.FC = () => {
