@@ -116,23 +116,109 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: {
   selectedNodeId: string | null;
   selectedNodePath?: NoteNode[];
 }) {
+  // 找到当前选中的节点
+  const selectedNode = selectedNodePath && selectedNodePath.length > 0 
+    ? selectedNodePath[selectedNodePath.length - 1] 
+    : null;
+  
+  // 获取父节点（如果不是根节点）
+  const parentNode = selectedNodePath && selectedNodePath.length > 1 
+    ? selectedNodePath[selectedNodePath.length - 2] 
+    : null;
+  
+  // 构建要显示的节点列表
+  let displayNodes: NoteNode[] = [];
+  
+  // 如果有选中的节点且不是根节点，则显示选中节点的子节点
+  if (selectedNode && selectedNode.id !== 'root') {
+    // 只显示当前选中节点的直接子节点
+    displayNodes = selectedNode.children;
+  } else {
+    // 否则显示根节点的子节点
+    displayNodes = nodes;
+  }
+  
   // 扁平化当前显示的节点
-  const flattenedNodes = flattenNoteTree(nodes, 0, [], selectedNodePath);
+  const flattenedNodes = flattenNoteTree(displayNodes, 0, [], selectedNodePath);
+  
+  // 如果有父节点，添加".."选项到列表开头
+  const showParentOption = parentNode !== null;
+  const itemCount = showParentOption ? flattenedNodes.length + 1 : flattenedNodes.length;
+  
+  // 自定义的列表项组件，用于处理".."选项
+  const CustomNoteTreeNode = ({ 
+    data, 
+    index, 
+    style 
+  }: { 
+    data: { 
+      flattenedNodes: {node: NoteNode, level: number, parentPath: NoteNode[]}[], 
+      selectedNodeId: string | null,
+      onNodeSelect: (node: NoteNode) => void,
+      parentNode: NoteNode | null,
+      showParentOption: boolean
+    }, 
+    index: number, 
+    style: React.CSSProperties 
+  }) => {
+    // 如果是".."选项
+    if (showParentOption && index === 0) {
+      return (
+        <div style={style}>
+          <div 
+            className="note-node-header"
+            onClick={() => parentNode && onNodeSelect(parentNode)}
+            style={{ paddingLeft: '10px' }}
+          >
+            <span className="node-title">..</span>
+          </div>
+        </div>
+      );
+    }
+    
+    // 调整索引以匹配flattenedNodes数组
+    const actualIndex = showParentOption ? index - 1 : index;
+    
+    const { flattenedNodes: actualFlattenedNodes, selectedNodeId, onNodeSelect: actualOnNodeSelect } = data;
+    const { node, level } = actualFlattenedNodes[actualIndex];
+    
+    const hasChildren = node.children.length > 0;
+    
+    return (
+      <div style={style}>
+        <div 
+          className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
+          onClick={() => actualOnNodeSelect(node)}
+          style={{ paddingLeft: `${level * 15 + 10}px` }}
+        >
+          {hasChildren && (
+            <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
+          )}
+          <span className="node-title">{node.title}</span>
+          {node.synced === false && (
+            <span className="sync-status-icon" title="未同步">●</span>
+          )}
+        </div>
+      </div>
+    );
+  };
   
   return (
     <div className="note-tree">
       <List
         height={600} // 设置容器高度
-        itemCount={flattenedNodes.length}
+        itemCount={itemCount}
         itemSize={35} // 每个节点的高度
         itemData={{
           flattenedNodes,
           selectedNodeId,
-          onNodeSelect
+          onNodeSelect,
+          parentNode,
+          showParentOption
         }}
         width="100%"
       >
-        {NoteTreeNode}
+        {CustomNoteTreeNode}
       </List>
     </div>
   );
@@ -362,6 +448,10 @@ function NoteEditor({ note, onNoteChange }: {
     const updateNodeExpanded = (nodes: NoteNode[]): NoteNode[] => {
       return nodes.map(n => {
         if (n.id === node.id) {
+          // 对于".."节点，我们不切换展开状态
+          if (node.title === "..") {
+            return n;
+          }
           return { ...n, expanded: !n.expanded };
         }
         if (n.children.length > 0) {

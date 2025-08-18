@@ -62,8 +62,12 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
     };
   }, [autoSyncInterval]);
 
-  // 当token变化时，自动获取用户名
+  // 当token变化时，立即删除原有用户名并重新获取
   useEffect(() => {
+    // 清除之前存储的用户名
+    setUsername('');
+    localStorage.removeItem('github_username');
+    
     if (token) {
       fetchUsernameFromToken();
     }
