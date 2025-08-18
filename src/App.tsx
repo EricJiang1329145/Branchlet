@@ -158,14 +158,10 @@ const NoteTreeNode = ({
     }
   };
   
-  // 使用模运算实现循环颜色效果
-  // 第10层用第0层颜色，第11层用第1层颜色，以此类推
-  const normalizedLevel = level % 10;
-  
   return (
     <div style={style}>
       <div 
-        className={`note-node-header level-${normalizedLevel} ${selectedNodeId === node.id ? 'selected' : ''}`}
+        className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
         onClick={() => onNodeSelect(node)}
         onContextMenu={handleContextMenu}  // 添加右键菜单事件
         style={{ paddingLeft: `${level * 15 + 10}px` }}
