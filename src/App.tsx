@@ -809,6 +809,62 @@ function NoteEditor({ note, onNoteChange }: {
   
   // 添加自动选中新建笔记的状态
   const [autoSelectNewNote, setAutoSelectNewNote] = useState<boolean>(true);
+  
+  // 添加用户活动状态
+  const [userActive, setUserActive] = useState<boolean>(true);
+  const inactiveTimerRef = useRef<number | null>(null);
+  
+  // 添加非活动时间状态（分钟）
+  const [inactiveTime, setInactiveTime] = useState<number>(5);
+  
+  // 设置用户非活动定时器
+  const setInactiveTimer = () => {
+    // 清除现有的定时器
+    if (inactiveTimerRef.current) {
+      window.clearTimeout(inactiveTimerRef.current);
+    }
+    
+    // 如果非活动时间设置为0，则不启动定时器
+    if (inactiveTime <= 0) {
+      return;
+    }
+    
+    // 设置新的定时器（根据设置的时间无操作后触发）
+    inactiveTimerRef.current = window.setTimeout(() => {
+      setUserActive(false);
+    }, inactiveTime * 60 * 1000);
+  };
+  
+  // 重置用户活动状态
+  const resetUserActivity = () => {
+    setUserActive(true);
+    setInactiveTimer();
+  };
+  
+  // 设置用户活动监听器
+  useEffect(() => {
+    // 设置初始定时器
+    setInactiveTimer();
+    
+    // 添加事件监听器
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'touchmove'];
+    events.forEach(event => {
+      window.addEventListener(event, resetUserActivity);
+    });
+    
+    // 清理函数
+    return () => {
+      // 清除定时器
+      if (inactiveTimerRef.current) {
+        window.clearTimeout(inactiveTimerRef.current);
+      }
+      
+      // 移除事件监听器
+      events.forEach(event => {
+        window.removeEventListener(event, resetUserActivity);
+      });
+    };
+  }, [inactiveTime]);
 
   // 切换主题
   const toggleTheme = () => {
@@ -822,7 +878,7 @@ function NoteEditor({ note, onNoteChange }: {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${!userActive ? 'inactive' : ''}`}>
       <header className="app-header">
         <div className="header-title">
           <h1>Branchlet-知记</h1>
@@ -837,6 +893,8 @@ function NoteEditor({ note, onNoteChange }: {
             onDeleteNote={handleDeleteNote}
             autoSelectNewNote={autoSelectNewNote}
             setAutoSelectNewNote={setAutoSelectNewNote}
+            inactiveTime={inactiveTime}
+            setInactiveTime={setInactiveTime}
           />
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             {{

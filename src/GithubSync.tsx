@@ -8,9 +8,11 @@ interface GithubSyncProps {
   onDeleteNote?: (noteId: string) => void;
   autoSelectNewNote: boolean;
   setAutoSelectNewNote: (value: boolean) => void;
+  inactiveTime: number;
+  setInactiveTime: (value: number) => void;
 }
 
-const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelectNewNote, setAutoSelectNewNote, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
+const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelectNewNote, setAutoSelectNewNote, inactiveTime, setInactiveTime, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -21,6 +23,14 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
   const [deleteConfirmationId, setDeleteConfirmationId] = useState('');
   const [autoSyncInterval, setAutoSyncInterval] = useState<number>(0); // 自动同步间隔（分钟），0表示不自动同步
   const [autoSyncTimer, setAutoSyncTimer] = useState<any>(null);
+  
+  // 初始化时从本地存储获取非活动时间设置
+  useEffect(() => {
+    const savedInactiveTime = localStorage.getItem('inactive_time');
+    if (savedInactiveTime) {
+      setInactiveTime(parseInt(savedInactiveTime, 10));
+    }
+  }, []);
 
   // 初始化时从本地存储获取token和username
   useEffect(() => {
@@ -75,11 +85,12 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     }
   }, [token]);
 
-  // 保存token、用户名和自动同步设置到本地存储
+  // 保存token、用户名、自动同步设置和非活动时间到本地存储
   const saveCredentials = () => {
     localStorage.setItem('github_token', token);
     localStorage.setItem('github_username', username);
     localStorage.setItem('auto_sync_interval', autoSyncInterval.toString());
+    localStorage.setItem('inactive_time', inactiveTime.toString());
     setIsSettingsOpen(false);
   };
 
@@ -720,7 +731,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     // 延迟添加.open类，确保CSS过渡动画能够正常工作
     setTimeout(() => {
       setIsSettingsModalOpening(true);
-    }, 10);
+    }, 50);
   };
 
   // 修改删除确认模态框的打开函数
@@ -729,7 +740,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     // 延迟添加.open类，确保CSS过渡动画能够正常工作
     setTimeout(() => {
       setIsDeleteModalOpening(true);
-    }, 10);
+    }, 50);
   };
 
   // 修改设置模态框的关闭函数
@@ -904,7 +915,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
             </div>
             <div className="form-group">
               <div className="switch-label">
-                <span>自动选中新建笔记：</span>
+                <label>自动选中新建笔记:</label>
                 <label className="switch">
                   <input 
                     type="checkbox" 
@@ -914,6 +925,16 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
                   <span className="slider"></span>
                 </label>
               </div>
+            </div>
+            <div className="form-group">
+              <label>非活动时间（分钟，0表示不启用）：</label>
+              <input
+                type="number"
+                value={inactiveTime}
+                onChange={(e) => setInactiveTime(Number(e.target.value))}
+                min="0"
+                max="60"
+              />
             </div>
             <div className="settings-actions">
               <button onClick={saveCredentials}>保存</button>

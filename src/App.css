@@ -7,6 +7,17 @@
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafb);
 }
+
+/* 用户非活动状态下的页面效果 */
+.inactive .app-content {
+  filter: brightness(0.5) blur(2px);
+  transition: filter 0.5s ease;
+}
+
+/* 时钟部分在非活动状态下保持正常显示 */
+.inactive .clock-container {
+  filter: none;
+}
 /* CSS变量定义 */
 :root {
   /* 字体设置 */
