@@ -1,0 +1,136 @@
+/* 时钟容器 */
+.clock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 20px;
+}
+
+/* 时钟样式 */
+.clock {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+/* 日期显示 */
+.date-display {
+  font-size: 14px;
+  color: #e0e0e0;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* 时钟的分隔符 */
+.clock .divider {
+  font-size: 30px;
+  line-height: 50px;
+  font-style: normal;
+  color: #e0e0e0;
+  margin: 0 2px;
+}
+
+/* 时钟的卡片 */
+.clock .flip {
+  position: relative;
+  width: 30px;
+  height: 50px;
+  margin: 1px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 50px;
+  text-align: center;
+  background: #2d2d2d;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 时钟上的数字 */
+.clock .flip .digital::before,
+.clock .flip .digital::after {
+  position: absolute;
+  content: attr(data-number);
+  left: 0;
+  right: 0;
+  color: #e0e0e0;
+  background: #333;
+  overflow: hidden;
+  perspective: 80px;
+}
+
+/* 翻页前的数字 */
+.clock .flip .digital::before {
+  top: 0;
+  bottom: 50%;
+  border-bottom: 1px solid #555;
+  border-radius: 6px 6px 0 0;
+}
+
+/* 翻页后的数字 */
+.clock .flip .digital::after {
+  top: 50%;
+  bottom: 0;
+  line-height: 0;
+  border-radius: 0 0 6px 6px;
+}
+
+.clock .flip .back::before,
+.clock .flip .front::after {
+  z-index: 1;
+}
+
+.clock .flip .back::after {
+  z-index: 2;
+}
+
+.clock .flip .front::before {
+  z-index: 3;
+}
+
+.clock .flip .back::after {
+  transform-origin: center top;
+  transform: rotateX(0.5turn);
+}
+
+.clock .flip.running .front::before {
+  transform-origin: center bottom;
+  animation: frontFlipDown 0.6s ease-in-out;
+  box-shadow: 0 -1px 3px rgba(255, 255, 255, 0.1);
+  backface-visibility: hidden;
+}
+
+.clock .flip.running .back::after {
+  animation: backFlipDown 0.6s ease-in-out;
+}
+
+@keyframes frontFlipDown {
+  to {
+    transform: rotateX(0.5turn);
+  }
+}
+
+@keyframes backFlipDown {
+  to {
+    transform: rotateX(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .clock {
+    margin-left: 10px;
+  }
+  
+  .clock .flip {
+    width: 25px;
+    height: 40px;
+    font-size: 22px;
+    line-height: 40px;
+  }
+  
+  .clock .divider {
+    font-size: 24px;
+    line-height: 40px;
+  }
+}

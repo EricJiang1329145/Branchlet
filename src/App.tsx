@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import "./App.css";
+import "./Clock.css";
 import GithubSync from "./GithubSync";
+import Clock from "./Clock";
 import { v4 as uuidv4 } from "uuid";
 import NoteStructureManager from "./NoteStructureManager";
 import { NoteNode } from "./types";
@@ -775,7 +777,10 @@ function NoteEditor({ note, onNoteChange }: {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>Branchlet - 笔记应用</h1>
+        <div className="header-title">
+          <h1>Branchlet - 笔记应用</h1>
+          <Clock />
+        </div>
         <div className="header-controls">
           <GithubSync 
             ref={githubSyncRef} 

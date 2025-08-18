@@ -104,6 +104,13 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* 标题容器 */
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
 /* 标题样式 */
 .app-header h1 {
   background: rgba(255, 255, 255, 0.05);
@@ -115,6 +122,9 @@
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   transform: scale(1);
+  margin: 0;
+  font-size: 1.5rem;
+  color: #e0e0e0;
 }
 
 .app-header h1:hover {
