@@ -1,4 +1,4 @@
-import { useState, useEffect, useImperativeHandle, useRef } from 'react';
+import { useState, useEffect, useImperativeHandle } from 'react';
 import { Octokit } from '@octokit/rest';
 
 interface GithubSyncProps {
@@ -10,9 +10,11 @@ interface GithubSyncProps {
   setAutoSelectNewNote: (value: boolean) => void;
   inactiveTime: number;
   setInactiveTime: (value: number) => void;
+  inactiveBlur: number;
+  setInactiveBlur: (value: number) => void;
 }
 
-const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelectNewNote, setAutoSelectNewNote, inactiveTime, setInactiveTime, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
+const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelectNewNote, setAutoSelectNewNote, inactiveTime, setInactiveTime, inactiveBlur, setInactiveBlur, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -29,6 +31,11 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     const savedInactiveTime = localStorage.getItem('inactive_time');
     if (savedInactiveTime) {
       setInactiveTime(parseInt(savedInactiveTime, 10));
+    }
+    
+    const savedInactiveBlur = localStorage.getItem('inactive_blur');
+    if (savedInactiveBlur) {
+      setInactiveBlur(parseInt(savedInactiveBlur, 10));
     }
   }, []);
 
@@ -85,12 +92,13 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     }
   }, [token]);
 
-  // 保存token、用户名、自动同步设置和非活动时间到本地存储
+  // 保存token、用户名、自动同步设置、非活动时间和模糊程度到本地存储
   const saveCredentials = () => {
     localStorage.setItem('github_token', token);
     localStorage.setItem('github_username', username);
     localStorage.setItem('auto_sync_interval', autoSyncInterval.toString());
     localStorage.setItem('inactive_time', inactiveTime.toString());
+    localStorage.setItem('inactive_blur', inactiveBlur.toString());
     setIsSettingsOpen(false);
   };
 
@@ -731,17 +739,10 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     // 延迟添加.open类，确保CSS过渡动画能够正常工作
     setTimeout(() => {
       setIsSettingsModalOpening(true);
-    }, 50);
+    }, 10);
   };
 
-  // 修改删除确认模态框的打开函数
-  const openDeleteModal = () => {
-    setIsDeleteModalOpen(true);
-    // 延迟添加.open类，确保CSS过渡动画能够正常工作
-    setTimeout(() => {
-      setIsDeleteModalOpening(true);
-    }, 50);
-  };
+
 
   // 修改设置模态框的关闭函数
   const closeSettingsModal = () => {
@@ -934,6 +935,16 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
                 onChange={(e) => setInactiveTime(Number(e.target.value))}
                 min="0"
                 max="60"
+              />
+            </div>
+            <div className="form-group">
+              <label>非活动模糊程度（像素）：</label>
+              <input
+                type="number"
+                value={inactiveBlur}
+                onChange={(e) => setInactiveBlur(Number(e.target.value))}
+                min="0"
+                max="20"
               />
             </div>
             <div className="settings-actions">

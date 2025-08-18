@@ -73,113 +73,7 @@ const flattenNoteTree = (nodes: NoteNode[], level: number = 0, parentPath: NoteN
   return result;
 };
 
-// 笔记树节点渲染组件
-const NoteTreeNode = ({ 
-  data, 
-  index, 
-  style 
-}: { 
-  data: { 
-    flattenedNodes: {node: NoteNode, level: number, parentPath: NoteNode[]}[], 
-    selectedNodeId: string | null,
-    onNodeSelect: (node: NoteNode) => void,
-    onNodeDelete: (nodeId: string) => void  // 添加删除回调函数
-  }, 
-  index: number, 
-  style: React.CSSProperties 
-}) => {
-  const { flattenedNodes, selectedNodeId, onNodeSelect, onNodeDelete } = data;
-  const { node, level } = flattenedNodes[index];
-  
-  const hasChildren = node.children.length > 0;
-  
-  // 处理右键菜单
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    
-    // 创建上下文菜单
-    const menu = document.createElement('div');
-    menu.className = 'context-menu';
-    menu.style.position = 'absolute';
-    menu.style.left = `${e.clientX}px`;
-    menu.style.top = `${e.clientY}px`;
-    menu.style.zIndex = '1000';
-    
-    // 添加菜单项
-    const renameItem = document.createElement('div');
-    renameItem.className = 'context-menu-item';
-    renameItem.textContent = '重命名';
-    renameItem.onclick = () => {
-      const newTitle = prompt('请输入新标题:', node.title);
-      if (newTitle !== null && newTitle !== node.title) {
-        // 这里应该调用重命名函数
-        console.log(`重命名节点 ${node.id} 为 ${newTitle}`);
-      }
-      document.body.removeChild(menu);
-    };
-    
-    const deleteItem = document.createElement('div');
-    deleteItem.className = 'context-menu-item';
-    deleteItem.textContent = '删除';
-    deleteItem.onclick = () => {
-      if (window.confirm(`确定要删除笔记 "${node.title}" 吗？`)) {
-        onNodeDelete(node.id);
-      }
-      document.body.removeChild(menu);
-    };
-    
-    menu.appendChild(renameItem);
-    menu.appendChild(deleteItem);
-    
-    // 添加到页面
-    document.body.appendChild(menu);
-    
-    // 点击其他地方关闭菜单
-    const handleClickOutside = () => {
-      document.body.removeChild(menu);
-      document.removeEventListener('click', handleClickOutside);
-    };
-    
-    setTimeout(() => {
-      document.addEventListener('click', handleClickOutside);
-    }, 0);
-  };
-  
-  // 确定节点图标
-  const getNodeIcon = () => {
-    if (hasChildren) {
-      // 有子节点的节点显示为文件夹图标
-      return (
-        <span className="node-icon folder-icon">📁</span>
-      );
-    } else {
-      // 没有子节点的节点显示为文档图标
-      return (
-        <span className="node-icon document-icon">📄</span>
-      );
-    }
-  };
-  
-  return (
-    <div style={style}>
-      <div 
-        className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
-        onClick={() => onNodeSelect(node)}
-        onContextMenu={handleContextMenu}  // 添加右键菜单事件
-        style={{ paddingLeft: `${level * 15 + 10}px` }}
-      >
-        {hasChildren && (
-          <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
-        )}
-        {getNodeIcon() /* 添加节点图标 */}
-        <span className="node-title">{node.title}</span>
-        {node.synced === false && (
-          <span className="sync-status-icon" title="未同步">●</span>
-        )}
-      </div>
-    </div>
-  );
-};
+
 
 // 笔记树组件
 function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpdateNodes, noteNodes, onDeleteNode }: { 
@@ -633,6 +527,8 @@ function NoteEditor({ note, onNoteChange }: {
       synced: false // 新笔记默认未同步
     };
 
+    console.log(`创建新笔记: ${newTitle} (ID: ${newId})`);
+
     // 如果没有选中任何笔记，则将新笔记添加为根节点的子笔记
     if (!selectedNode) {
       const addNoteToRoot = (nodes: NoteNode[]): NoteNode[] => {
@@ -641,6 +537,7 @@ function NoteEditor({ note, onNoteChange }: {
           if (node.id === 'root') {
             // 更新笔记结构
             noteStructureManager.current.addNote(newId, node.id);
+            console.log(`将新笔记添加到根节点`);
             return { ...node, children: [...node.children, newNote], expanded: true };
           }
           
@@ -656,6 +553,7 @@ function NoteEditor({ note, onNoteChange }: {
       setNoteNodes(addNoteToRoot(noteNodes));
       // 根据设置决定是否自动选中新创建的笔记
       if (autoSelectNewNote) {
+        console.log(`自动选中新笔记: ${newTitle}`);
         setSelectedNode(newNote);
       }
       return;
@@ -668,6 +566,7 @@ function NoteEditor({ note, onNoteChange }: {
         if (node.id === selectedNode.id) {
           // 更新笔记结构
           noteStructureManager.current.addNote(newId, selectedNode.id);
+          console.log(`将新笔记添加为 ${selectedNode.title} 的子笔记`);
           // 确保选中的节点展开以显示新添加的子笔记
           return { ...node, children: [...node.children, newNote], expanded: true };
         }
@@ -698,6 +597,7 @@ function NoteEditor({ note, onNoteChange }: {
     // 否则，将新笔记添加为根节点的子笔记
     const targetNode = findSelectedNode(noteNodes);
     if (targetNode) {
+      console.log(`在选中的节点 ${targetNode.title} 下添加新笔记`);
       setNoteNodes(addNoteToParent(noteNodes));
     } else {
       // 如果选中的节点不存在，则将新笔记添加为根节点的子笔记
@@ -707,6 +607,7 @@ function NoteEditor({ note, onNoteChange }: {
           if (node.id === 'root') {
             // 更新笔记结构
             noteStructureManager.current.addNote(newId, node.id);
+            console.log(`选中的节点不存在，将新笔记添加到根节点`);
             return { ...node, children: [...node.children, newNote], expanded: true };
           }
           
@@ -723,12 +624,15 @@ function NoteEditor({ note, onNoteChange }: {
     }
     // 根据设置决定是否自动选中新创建的笔记
     if (autoSelectNewNote) {
+      console.log(`自动选中新笔记: ${newTitle}`);
       setSelectedNode(newNote);
     }
   };
 
   // 删除笔记
   const handleDeleteNote = (noteId: string) => {
+    console.log(`开始删除笔记 ID: ${noteId}`);
+    
     // 查找要删除的笔记
     const findNote = (nodes: NoteNode[]): NoteNode | undefined => {
       for (const node of nodes) {
@@ -744,8 +648,16 @@ function NoteEditor({ note, onNoteChange }: {
     
     const noteToDelete = findNote(noteNodes);
     
+    if (noteToDelete) {
+      console.log(`找到要删除的笔记: ${noteToDelete.title}`);
+    } else {
+      console.warn(`未找到要删除的笔记 ID: ${noteId}`);
+      return;
+    }
+    
     // 使用笔记结构管理器删除笔记
     noteStructureManager.current.deleteNote(noteId);
+    console.log(`已从笔记结构管理器中删除笔记`);
     
     // 递归删除笔记节点
     const deleteNote = (nodes: NoteNode[]): NoteNode[] => {
@@ -759,18 +671,23 @@ function NoteEditor({ note, onNoteChange }: {
 
     const updatedNodes = deleteNote(noteNodes);
     setNoteNodes(updatedNodes);
+    console.log(`已从UI中删除笔记`);
     
     // 如果删除的是当前选中的笔记，则取消选中
     if (selectedNode && selectedNode.id === noteId) {
+      console.log(`删除的是当前选中的笔记，取消选中`);
       setSelectedNode(null);
     }
     
     // 如果笔记已同步，则通知GithubSync组件删除对应的GitHub文件
     if (noteToDelete && noteToDelete.synced === true) {
+      console.log(`笔记已同步，通知GithubSync组件删除GitHub文件`);
       if (githubSyncRef.current && githubSyncRef.current.deleteNote) {
         githubSyncRef.current.deleteNote(noteId);
       }
     }
+    
+    console.log(`笔记删除成功: ${noteToDelete.title} (ID: ${noteId})`);
   };
 
   const handleNotesSync = (syncedNotes: NoteNode[]) => {
@@ -817,6 +734,9 @@ function NoteEditor({ note, onNoteChange }: {
   // 添加非活动时间状态（分钟）
   const [inactiveTime, setInactiveTime] = useState<number>(5);
   
+  // 添加非活动模糊程度状态
+  const [inactiveBlur, setInactiveBlur] = useState<number>(2);
+  
   // 设置用户非活动定时器
   const setInactiveTimer = () => {
     // 清除现有的定时器
@@ -846,6 +766,9 @@ function NoteEditor({ note, onNoteChange }: {
     // 设置初始定时器
     setInactiveTimer();
     
+    // 更新CSS变量
+    document.documentElement.style.setProperty('--inactive-blur', `${inactiveBlur}px`);
+    
     // 添加事件监听器
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'touchmove'];
     events.forEach(event => {
@@ -864,7 +787,7 @@ function NoteEditor({ note, onNoteChange }: {
         window.removeEventListener(event, resetUserActivity);
       });
     };
-  }, [inactiveTime]);
+  }, [inactiveTime, inactiveBlur]);
 
   // 切换主题
   const toggleTheme = () => {
@@ -895,6 +818,8 @@ function NoteEditor({ note, onNoteChange }: {
             setAutoSelectNewNote={setAutoSelectNewNote}
             inactiveTime={inactiveTime}
             setInactiveTime={setInactiveTime}
+            inactiveBlur={inactiveBlur}
+            setInactiveBlur={setInactiveBlur}
           />
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             {{

@@ -10,8 +10,12 @@
 
 /* 用户非活动状态下的页面效果 */
 .inactive .app-content {
-  filter: brightness(0.5) blur(2px);
+  filter: brightness(0.5) blur(var(--inactive-blur, 2px));
   transition: filter 0.5s ease;
+}
+
+:root {
+  --inactive-blur: 2px;
 }
 
 /* 时钟部分在非活动状态下保持正常显示 */
@@ -964,11 +968,15 @@ button {
 }
 
 .folder-icon {
-  /* 可以为文件夹图标添加特殊样式 */
+  /* 为文件夹图标添加特殊样式 */
+  color: #FFD700; /* 金色 */
+  font-weight: bold;
 }
 
 .document-icon {
-  /* 可以为文档图标添加特殊样式 */
+  /* 为文档图标添加特殊样式 */
+  color: #87CEEB; /* 天蓝色 */
+  font-weight: normal;
 }
 
 /* 深色主题样式 */
