@@ -110,11 +110,13 @@ const NoteTreeNode = ({
 };
 
 // 笔记树组件
-function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: { 
+function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpdateNodes, noteNodes }: { 
   nodes: NoteNode[]; 
   onNodeSelect: (node: NoteNode) => void; 
   selectedNodeId: string | null;
   selectedNodePath?: NoteNode[];
+  onUpdateNodes: (nodes: NoteNode[]) => void;
+  noteNodes: NoteNode[];
 }) {
   // 找到当前选中的节点
   const selectedNode = selectedNodePath && selectedNodePath.length > 0 
@@ -156,7 +158,9 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: {
       selectedNodeId: string | null,
       onNodeSelect: (node: NoteNode) => void,
       parentNode: NoteNode | null,
-      showParentOption: boolean
+      showParentOption: boolean,
+      onUpdateNodes: (nodes: NoteNode[]) => void,
+      noteNodes: NoteNode[]
     }, 
     index: number, 
     style: React.CSSProperties 
@@ -184,15 +188,41 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: {
     
     const hasChildren = node.children.length > 0;
     
+    // 处理节点展开/折叠
+    const handleToggleExpand = (e: React.MouseEvent) => {
+      e.stopPropagation(); // 阻止事件冒泡到父级节点
+      
+      // 更新节点展开状态
+      const updateNodeExpanded = (nodes: NoteNode[]): NoteNode[] => {
+        return nodes.map(n => {
+          if (n.id === node.id) {
+            return { ...n, expanded: !n.expanded };
+          }
+          if (n.children.length > 0) {
+            return { ...n, children: updateNodeExpanded(n.children) };
+          }
+          return n;
+        });
+      };
+      
+      // 只更新节点展开状态，不选中节点
+      data.onUpdateNodes(updateNodeExpanded(data.noteNodes));
+    };
+    
+    // 处理节点选择
+    const handleSelectNode = () => {
+      actualOnNodeSelect(node);
+    };
+    
     return (
       <div style={style}>
         <div 
           className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
-          onClick={() => actualOnNodeSelect(node)}
+          onClick={handleSelectNode}
           style={{ paddingLeft: `${level * 15 + 10}px` }}
         >
           {hasChildren && (
-            <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
+            <span className="expand-icon" onClick={handleToggleExpand}>{node.expanded ? '▼' : '▶'}</span>
           )}
           <span className="node-title">{node.title}</span>
           {node.synced === false && (
@@ -210,12 +240,14 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath }: {
         itemCount={itemCount}
         itemSize={35} // 每个节点的高度
         itemData={{
-          flattenedNodes,
-          selectedNodeId,
-          onNodeSelect,
-          parentNode,
-          showParentOption
-        }}
+              flattenedNodes,
+                selectedNodeId,
+                onNodeSelect,
+                parentNode,
+                showParentOption,
+                onUpdateNodes,
+                noteNodes
+              }}
         width="100%"
       >
         {CustomNoteTreeNode}
@@ -309,6 +341,11 @@ function NoteEditor({ note, onNoteChange }: {
   const [searchResults, setSearchResults] = useState<NoteNode[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  
+  // 面包屑省略号弹出列表相关的状态
+  const [showBreadcrumbPopup, setShowBreadcrumbPopup] = useState(false);
+  const [breadcrumbPopupPosition, setBreadcrumbPopupPosition] = useState({ top: 0, left: 0 });
+  const [breadcrumbPopupItems, setBreadcrumbPopupItems] = useState<NoteNode[]>([]);
 
   // 获取节点路径的辅助函数
   const getNodePath = (nodes: NoteNode[], targetId: string): NoteNode[] | null => {
@@ -444,23 +481,6 @@ function NoteEditor({ note, onNoteChange }: {
   // 处理节点选择
   const handleNodeSelect = (node: NoteNode) => {
     setSelectedNode(node);
-    // 切换展开状态
-    const updateNodeExpanded = (nodes: NoteNode[]): NoteNode[] => {
-      return nodes.map(n => {
-        if (n.id === node.id) {
-          // 对于".."节点，我们不切换展开状态
-          if (node.title === "..") {
-            return n;
-          }
-          return { ...n, expanded: !n.expanded };
-        }
-        if (n.children.length > 0) {
-          return { ...n, children: updateNodeExpanded(n.children) };
-        }
-        return n;
-      });
-    };
-    setNoteNodes(updateNodeExpanded(noteNodes));
   };
 
   // 处理笔记内容变化
@@ -728,7 +748,26 @@ function NoteEditor({ note, onNoteChange }: {
                       <>
                         <span className="breadcrumb-item">{path[0].title}</span>
                         <span className="breadcrumb-separator">/</span>
-                        <span className="breadcrumb-item">...</span>
+                        <span 
+                          className="breadcrumb-item"
+                          onClick={(e) => {
+                            // 计算中间省略的节点
+                            const omittedNodes = path.slice(1, -2);
+                            setBreadcrumbPopupItems(omittedNodes);
+                            
+                            // 设置弹出位置
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setBreadcrumbPopupPosition({
+                              top: rect.bottom + window.scrollY,
+                              left: rect.left + window.scrollX
+                            });
+                            
+                            // 显示弹出列表
+                            setShowBreadcrumbPopup(true);
+                          }}
+                        >
+                          ...
+                        </span>
                         <span className="breadcrumb-separator">/</span>
                       </>
                     )}
@@ -771,12 +810,40 @@ function NoteEditor({ note, onNoteChange }: {
               })()
             )}
           </div>
-          
+          {/* 面包屑省略号弹出列表 */}
+          {showBreadcrumbPopup && (
+            <div 
+              className="breadcrumb-popup"
+              style={{
+                position: 'absolute',
+                top: breadcrumbPopupPosition.top,
+                left: breadcrumbPopupPosition.left,
+                zIndex: 1000,
+              }}
+              onClick={() => setShowBreadcrumbPopup(false)}
+            >
+              {breadcrumbPopupItems.map((node) => (
+                <div
+                  key={node.id}
+                  className="breadcrumb-popup-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNodeSelect(node);
+                    setShowBreadcrumbPopup(false);
+                  }}
+                >
+                  {node.title}
+                </div>
+              ))}
+            </div>
+          )}
           <NoteTree 
             nodes={isSearching ? searchResults : noteNodes} 
             onNodeSelect={handleNodeSelect} 
             selectedNodeId={selectedNode?.id || null}
             selectedNodePath={selectedNode ? getNodePath(noteNodes, selectedNode.id) || undefined : undefined}
+            onUpdateNodes={setNoteNodes}
+            noteNodes={noteNodes}
           />
         </div>
         <div className="note-main">

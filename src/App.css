@@ -770,3 +770,24 @@ button {
     color: #666;
   }
 }
+
+/* 面包屑弹出列表 */
+.breadcrumb-popup {
+  position: absolute;
+  z-index: 1000;
+  background-color: #2d2d2d;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  padding: 4px 0;
+}
+
+.breadcrumb-popup-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #e0e0e0;
+}
+
+.breadcrumb-popup-item:hover {
+  background-color: #3d3d3d;
+}
