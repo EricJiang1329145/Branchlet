@@ -16,7 +16,7 @@
   font-weight: 400;
 
   /* 颜色设置 */
-  color: #565656;
+  color: #73a755;/*这是笔记树节点文字颜色*/
   background-color: #1a1a1a;
 
   /* 字体渲染优化 */
@@ -971,11 +971,11 @@ button {
   --note-main-background: #1e1e1e;
   --input-background: #3c3c3c;
   --input-text: #e0e0e0;
-  --input-border: #555555;
+  --input-border: #916565;
   --button-background: #3c3c3c;
   --button-text: #e0e0e0;
   --button-hover: #4d4d4d;
-  --button-active: #555555;
+  --button-active: #8f7373;
   --node-hover: #3c3c3c;
   --node-selected: #007acc;
   --breadcrumb-popup-background: #2d2d2d;
@@ -1115,6 +1115,66 @@ button {
   align-items: center;
   gap: 10px; /* 增加子元素之间的间距 */
   margin-left: auto;
+}
+
+/* Switch开关样式 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #39C5BB;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.switch-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 10px 0;
+}
+
+.switch-label span {
+  margin-top: 5px;
+  font-size: 0.9rem;
+  color: #999;
+  user-select: none;
 }
 
 /* 初音主题样式 */

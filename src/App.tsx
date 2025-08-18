@@ -585,10 +585,48 @@ function NoteEditor({ note, onNoteChange }: {
     // 生成唯一ID
     const newId = uuidv4();
     
+    // 查找所有现有笔记，收集"新笔记"开头的标题
+    const findAllTitles = (nodes: NoteNode[]): string[] => {
+      const titles: string[] = [];
+      const traverse = (nodes: NoteNode[]) => {
+        nodes.forEach(node => {
+          if (node.id !== 'root') { // 排除根节点
+            titles.push(node.title);
+          }
+          if (node.children.length > 0) {
+            traverse(node.children);
+          }
+        });
+      };
+      traverse(nodes);
+      return titles;
+    };
+    
+    // 获取所有标题
+    const allTitles = findAllTitles(noteNodes);
+    
+    // 找出"新笔记"开头的标题中的数字
+    const usedNumbers = new Set<number>();
+    allTitles.forEach(title => {
+      const match = title.match(/^新笔记 (\d+)$/);
+      if (match) {
+        usedNumbers.add(parseInt(match[1]));
+      }
+    });
+    
+    // 找到最小的未使用的数字
+    let newNumber = 1;
+    while (usedNumbers.has(newNumber)) {
+      newNumber++;
+    }
+    
+    // 创建新标题
+    const newTitle = `新笔记 ${newNumber}`;
+    
     // 创建新笔记
     const newNote: NoteNode = {
       id: newId,
-      title: '新笔记',
+      title: newTitle,
       content: '请输入笔记内容',
       children: [],
       expanded: true,
@@ -616,7 +654,10 @@ function NoteEditor({ note, onNoteChange }: {
       };
       
       setNoteNodes(addNoteToRoot(noteNodes));
-      setSelectedNode(newNote);
+      // 根据设置决定是否自动选中新创建的笔记
+      if (autoSelectNewNote) {
+        setSelectedNode(newNote);
+      }
       return;
     }
 
@@ -680,7 +721,10 @@ function NoteEditor({ note, onNoteChange }: {
       
       setNoteNodes(addNoteToRoot(noteNodes));
     }
-    setSelectedNode(newNote);
+    // 根据设置决定是否自动选中新创建的笔记
+    if (autoSelectNewNote) {
+      setSelectedNode(newNote);
+    }
   };
 
   // 删除笔记
@@ -762,6 +806,9 @@ function NoteEditor({ note, onNoteChange }: {
 
   // 添加主题状态
   const [theme, setTheme] = useState<'dark' | 'read' | 'miku'>('dark');
+  
+  // 添加自动选中新建笔记的状态
+  const [autoSelectNewNote, setAutoSelectNewNote] = useState<boolean>(true);
 
   // 切换主题
   const toggleTheme = () => {
@@ -778,7 +825,7 @@ function NoteEditor({ note, onNoteChange }: {
     <div className="app-container">
       <header className="app-header">
         <div className="header-title">
-          <h1>Branchlet - 笔记应用</h1>
+          <h1>Branchlet-知记</h1>
           <Clock />
         </div>
         <div className="header-controls">
@@ -788,6 +835,8 @@ function NoteEditor({ note, onNoteChange }: {
             notes={noteNodes} 
             selectedNode={selectedNode}
             onDeleteNote={handleDeleteNote}
+            autoSelectNewNote={autoSelectNewNote}
+            setAutoSelectNewNote={setAutoSelectNewNote}
           />
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             {{

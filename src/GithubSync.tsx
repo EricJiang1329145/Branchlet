@@ -6,9 +6,11 @@ interface GithubSyncProps {
   notes: any[];
   selectedNode?: any;
   onDeleteNote?: (noteId: string) => void;
+  autoSelectNewNote: boolean;
+  setAutoSelectNewNote: (value: boolean) => void;
 }
 
-const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
+const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelectNewNote, setAutoSelectNewNote, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -899,6 +901,19 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, ref }: Git
                 <option value="1800">每30分钟</option>
                 <option value="3600">每小时</option>
               </select>
+            </div>
+            <div className="form-group">
+              <div className="switch-label">
+                <span>自动选中新建笔记：</span>
+                <label className="switch">
+                  <input 
+                    type="checkbox" 
+                    checked={autoSelectNewNote}
+                    onChange={(e) => setAutoSelectNewNote(e.target.checked)}
+                  />
+                  <span className="slider"></span>
+                </label>
+              </div>
             </div>
             <div className="settings-actions">
               <button onClick={saveCredentials}>保存</button>
