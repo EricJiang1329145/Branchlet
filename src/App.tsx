@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import "./App.css";
 import GithubSync from "./GithubSync";
 import { v4 as uuidv4 } from "uuid";
@@ -80,26 +80,96 @@ const NoteTreeNode = ({
   data: { 
     flattenedNodes: {node: NoteNode, level: number, parentPath: NoteNode[]}[], 
     selectedNodeId: string | null,
-    onNodeSelect: (node: NoteNode) => void
+    onNodeSelect: (node: NoteNode) => void,
+    onNodeDelete: (nodeId: string) => void  // 添加删除回调函数
   }, 
   index: number, 
   style: React.CSSProperties 
 }) => {
-  const { flattenedNodes, selectedNodeId, onNodeSelect } = data;
+  const { flattenedNodes, selectedNodeId, onNodeSelect, onNodeDelete } = data;
   const { node, level } = flattenedNodes[index];
   
   const hasChildren = node.children.length > 0;
+  
+  // 处理右键菜单
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // 创建上下文菜单
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.style.position = 'absolute';
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+    menu.style.zIndex = '1000';
+    
+    // 添加菜单项
+    const renameItem = document.createElement('div');
+    renameItem.className = 'context-menu-item';
+    renameItem.textContent = '重命名';
+    renameItem.onclick = () => {
+      const newTitle = prompt('请输入新标题:', node.title);
+      if (newTitle !== null && newTitle !== node.title) {
+        // 这里应该调用重命名函数
+        console.log(`重命名节点 ${node.id} 为 ${newTitle}`);
+      }
+      document.body.removeChild(menu);
+    };
+    
+    const deleteItem = document.createElement('div');
+    deleteItem.className = 'context-menu-item';
+    deleteItem.textContent = '删除';
+    deleteItem.onclick = () => {
+      if (window.confirm(`确定要删除笔记 "${node.title}" 吗？`)) {
+        onNodeDelete(node.id);
+      }
+      document.body.removeChild(menu);
+    };
+    
+    menu.appendChild(renameItem);
+    menu.appendChild(deleteItem);
+    
+    // 添加到页面
+    document.body.appendChild(menu);
+    
+    // 点击其他地方关闭菜单
+    const handleClickOutside = () => {
+      document.body.removeChild(menu);
+      document.removeEventListener('click', handleClickOutside);
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 0);
+  };
+  
+  // 确定节点图标
+  const getNodeIcon = () => {
+    if (hasChildren) {
+      // 有子节点的节点显示为文件夹图标
+      return (
+        <span className="node-icon folder-icon">📁</span>
+      );
+    } else {
+      // 没有子节点的节点显示为文档图标
+      return (
+        <span className="node-icon document-icon">📄</span>
+      );
+    }
+  };
   
   return (
     <div style={style}>
       <div 
         className={`note-node-header ${selectedNodeId === node.id ? 'selected' : ''}`}
         onClick={() => onNodeSelect(node)}
+        onContextMenu={handleContextMenu}  // 添加右键菜单事件
         style={{ paddingLeft: `${level * 15 + 10}px` }}
       >
         {hasChildren && (
           <span className="expand-icon">{node.expanded ? '▼' : '▶'}</span>
         )}
+        {getNodeIcon() /* 添加节点图标 */}
         <span className="node-title">{node.title}</span>
         {node.synced === false && (
           <span className="sync-status-icon" title="未同步">●</span>
@@ -110,13 +180,14 @@ const NoteTreeNode = ({
 };
 
 // 笔记树组件
-function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpdateNodes, noteNodes }: { 
+function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpdateNodes, noteNodes, onDeleteNode }: { 
   nodes: NoteNode[]; 
   onNodeSelect: (node: NoteNode) => void; 
   selectedNodeId: string | null;
   selectedNodePath?: NoteNode[];
   onUpdateNodes: (nodes: NoteNode[]) => void;
   noteNodes: NoteNode[];
+  onDeleteNode: (nodeId: string) => void;  // 添加删除回调
 }) {
   // 找到当前选中的节点
   const selectedNode = selectedNodePath && selectedNodePath.length > 0 
@@ -246,7 +317,8 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpd
                 parentNode,
                 showParentOption,
                 onUpdateNodes,
-                noteNodes
+                noteNodes,
+                onDeleteNode  // 传递删除回调
               }}
         width="100%"
       >
@@ -483,6 +555,11 @@ function NoteEditor({ note, onNoteChange }: {
     setSelectedNode(node);
   };
 
+  // 处理节点删除
+  const handleNodeDelete = (nodeId: string) => {
+    handleDeleteNote(nodeId);
+  };
+
   // 处理笔记内容变化
   const handleNoteChange = (updatedNote: NoteNode) => {
     const updateNoteContent = (nodes: NoteNode[]): NoteNode[] => {
@@ -681,18 +758,37 @@ function NoteEditor({ note, onNoteChange }: {
 
 
 
+  // 添加主题状态
+  const [theme, setTheme] = useState<'light' | 'dark' | 'miku'>('light');
+
+  // 切换主题
+  const toggleTheme = () => {
+    const themes: ('light' | 'dark' | 'miku')[] = ['light', 'dark', 'miku'];
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    const newTheme = themes[nextIndex];
+    setTheme(newTheme);
+    // 更新CSS变量
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
-  <h1>Branchlet - 笔记应用</h1>
-  <GithubSync 
-    ref={githubSyncRef} 
-    onNotesSync={handleNotesSync} 
-    notes={noteNodes} 
-    selectedNode={selectedNode}
-    onDeleteNote={handleDeleteNote}
-  />
-</header>
+        <h1>Branchlet - 笔记应用</h1>
+        <div className="header-controls">
+          <GithubSync 
+            ref={githubSyncRef} 
+            onNotesSync={handleNotesSync} 
+            notes={noteNodes} 
+            selectedNode={selectedNode}
+            onDeleteNote={handleDeleteNote}
+          />
+          <button className="theme-toggle-btn" onClick={toggleTheme}>
+            {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '🦋'}
+          </button>
+        </div>
+      </header>
       <div className="app-content">
         <div className="note-sidebar">
           <div className="sidebar-header">
@@ -844,6 +940,7 @@ function NoteEditor({ note, onNoteChange }: {
             selectedNodePath={selectedNode ? getNodePath(noteNodes, selectedNode.id) || undefined : undefined}
             onUpdateNodes={setNoteNodes}
             noteNodes={noteNodes}
+            onDeleteNode={handleNodeDelete}  // 传递删除回调
           />
         </div>
         <div className="note-main">

@@ -88,6 +88,9 @@
   border-bottom: 1px solid #404040;
   padding: 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 /* GitHub同步相关样式 */
@@ -494,19 +497,77 @@
   transition: background-color 0.2s;
 }
 
+/* 增强的悬停效果 */
+.note-node-header {
+  transition: all 0.2s ease; /* 添加过渡效果 */
+}
+
 .note-node-header:hover {
-  background-color: #404040;
+  background-color: #f0f8ff; /* 悬停时的背景色 */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 添加阴影效果 */
+  transform: translateY(-1px); /* 轻微的上移效果 */
+  border-radius: 4px; /* 添加圆角 */
 }
 
+/* 选中节点的样式增强 */
 .note-node-header.selected {
-  background-color: #1e3a8a;
-  color: #60a5fa;
+  background-color: #e6f3ff;
+  border-left: 3px solid #007bff;
 }
 
+/* 展开/折叠图标样式优化 */
 .expand-icon {
-  margin-right: 0.5rem;
-  font-size: 0.8rem;
-  color: #999;
+  margin-right: 5px;
+  color: #666;
+  transition: transform 0.2s ease;
+}
+
+.expand-icon:hover {
+  color: #007bff;
+  cursor: pointer;
+}
+
+/* 同步状态图标样式优化 */
+.sync-status-icon {
+  margin-left: 5px;
+  color: #ff6b6b;
+  font-size: 12px;
+}
+
+/* 面包屑导航样式增强 */
+.breadcrumb-item {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.breadcrumb-item:hover {
+  background-color: #e9ecef;
+}
+
+.breadcrumb-item.active {
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* 面包屑弹出列表样式 */
+.breadcrumb-popup {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: 5px 0;
+}
+
+.breadcrumb-popup-item {
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.breadcrumb-popup-item:hover {
+  background-color: #f8f9fa;
 }
 
 .node-title {
@@ -790,4 +851,303 @@ button {
 
 .breadcrumb-popup-item:hover {
   background-color: #3d3d3d;
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: 5px 0;
+  min-width: 100px;
+}
+
+.context-menu-item {
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* 节点图标样式 */
+.node-icon {
+  margin-right: 5px;
+  font-size: 14px;
+}
+
+.folder-icon {
+  /* 可以为文件夹图标添加特殊样式 */
+}
+
+.document-icon {
+  /* 可以为文档图标添加特殊样式 */
+}
+
+/* 深色主题样式 */
+[data-theme='dark'] {
+  --background-color: #1e1e1e;
+  --text-color: #e0e0e0;
+  --header-background: #2d2d2d;
+  --header-text: #ffffff;
+  --sidebar-background: #252526;
+  --sidebar-border: #3c3c3c;
+  --note-main-background: #1e1e1e;
+  --input-background: #3c3c3c;
+  --input-text: #e0e0e0;
+  --input-border: #555555;
+  --button-background: #3c3c3c;
+  --button-text: #e0e0e0;
+  --button-hover: #4d4d4d;
+  --button-active: #555555;
+  --node-hover: #3c3c3c;
+  --node-selected: #007acc;
+  --breadcrumb-popup-background: #2d2d2d;
+  --breadcrumb-popup-border: #404040;
+  --breadcrumb-popup-item-hover: #3d3d3d;
+  --context-menu-background: #2d2d2d;
+  --context-menu-border: #404040;
+  --context-menu-item-hover: #3d3d3d;
+}
+
+[data-theme='dark'] body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+[data-theme='dark'] .app-header {
+  background-color: var(--header-background);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-theme='dark'] .app-header h1 {
+  color: var(--header-text);
+}
+
+[data-theme='dark'] .note-sidebar {
+  background-color: var(--sidebar-background);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+[data-theme='dark'] .sidebar-header {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-theme='dark'] .note-main {
+  background-color: var(--note-main-background);
+}
+
+[data-theme='dark'] .note-title-input,
+[data-theme='dark'] .note-content-input {
+  background-color: var(--input-background);
+  color: var(--input-text);
+  border: 1px solid var(--input-border);
+}
+
+[data-theme='dark'] .note-title-input {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-theme='dark'] .note-node-header:hover {
+  background-color: var(--node-hover);
+}
+
+[data-theme='dark'] .note-node-header.selected {
+  background-color: var(--node-selected);
+  color: var(--header-text);
+}
+
+[data-theme='dark'] .expand-icon {
+  color: var(--text-color);
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] button {
+  background-color: var(--button-background);
+  color: var(--button-text);
+  border: 1px solid var(--input-border);
+}
+
+[data-theme='dark'] button:hover {
+  background-color: var(--button-hover);
+}
+
+[data-theme='dark'] button:active {
+  background-color: var(--button-active);
+}
+
+[data-theme='dark'] .breadcrumb-popup {
+  background-color: var(--breadcrumb-popup-background);
+  border: 1px solid var(--breadcrumb-popup-border);
+}
+
+[data-theme='dark'] .breadcrumb-popup-item {
+  color: var(--text-color);
+}
+
+[data-theme='dark'] .breadcrumb-popup-item:hover {
+  background-color: var(--breadcrumb-popup-item-hover);
+}
+
+[data-theme='dark'] .context-menu {
+  background-color: var(--context-menu-background);
+  border: 1px solid var(--context-menu-border);
+}
+
+[data-theme='dark'] .context-menu-item:hover {
+  background-color: var(--context-menu-item-hover);
+}
+
+/* 主题切换按钮样式 */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme='light'] .theme-toggle-btn {
+  background-color: #f0f0f0;
+}
+
+[data-theme='dark'] .theme-toggle-btn {
+  background-color: #444;
+  color: #fff;
+}
+
+[data-theme='miku'] .theme-toggle-btn {
+  background-color: #39C5BB;
+  color: #fff;
+}
+
+/* 头部控件容器样式 */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* 增加子元素之间的间距 */
+  margin-left: auto;
+}
+
+/* 初音主题样式 */
+[data-theme='miku'] {
+  --background-color: #f0f8ff;
+  --text-color: #333;
+  --header-background: #39C5BB;
+  --header-text: #ffffff;
+  --sidebar-background: #e6f7ff;
+  --sidebar-border: #b3e0e0;
+  --note-main-background: #ffffff;
+  --input-background: #ffffff;
+  --input-text: #333;
+  --input-border: #b3e0e0;
+  --button-background: #39C5BB;
+  --button-text: #ffffff;
+  --button-hover: #2da89f;
+  --button-active: #258a83;
+  --node-hover: #d1f0f0;
+  --node-selected: #39C5BB;
+  --breadcrumb-popup-background: #ffffff;
+  --breadcrumb-popup-border: #b3e0e0;
+  --breadcrumb-popup-item-hover: #e6f7ff;
+  --context-menu-background: #ffffff;
+  --context-menu-border: #b3e0e0;
+  --context-menu-item-hover: #e6f7ff;
+}
+
+[data-theme='miku'] body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+[data-theme='miku'] .app-header {
+  background-color: var(--header-background);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-theme='miku'] .app-header h1 {
+  color: var(--header-text);
+}
+
+[data-theme='miku'] .note-sidebar {
+  background-color: var(--sidebar-background);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+[data-theme='miku'] .sidebar-header {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-theme='miku'] .note-main {
+  background-color: var(--note-main-background);
+}
+
+[data-theme='miku'] .note-title-input,
+[data-theme='miku'] .note-content-input {
+  background-color: var(--input-background);
+  color: var(--input-text);
+  border: 1px solid var(--input-border);
+}
+
+[data-theme='miku'] .note-title-input {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-theme='miku'] .note-node-header:hover {
+  background-color: var(--node-hover);
+}
+
+[data-theme='miku'] .note-node-header.selected {
+  background-color: var(--node-selected);
+  color: var(--header-text);
+}
+
+[data-theme='miku'] .expand-icon {
+  color: var(--text-color);
+}
+
+[data-theme='miku'] input,
+[data-theme='miku'] button {
+  background-color: var(--button-background);
+  color: var(--button-text);
+  border: 1px solid var(--input-border);
+}
+
+[data-theme='miku'] button:hover {
+  background-color: var(--button-hover);
+}
+
+[data-theme='miku'] button:active {
+  background-color: var(--button-active);
+}
+
+[data-theme='miku'] .breadcrumb-popup {
+  background-color: var(--breadcrumb-popup-background);
+  border: 1px solid var(--breadcrumb-popup-border);
+}
+
+[data-theme='miku'] .breadcrumb-popup-item {
+  color: var(--text-color);
+}
+
+[data-theme='miku'] .breadcrumb-popup-item:hover {
+  background-color: var(--breadcrumb-popup-item-hover);
+}
+
+[data-theme='miku'] .context-menu {
+  background-color: var(--context-menu-background);
+  border: 1px solid var(--context-menu-border);
+}
+
+[data-theme='miku'] .context-menu-item:hover {
+  background-color: var(--context-menu-item-hover);
 }
