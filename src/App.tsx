@@ -759,11 +759,11 @@ function NoteEditor({ note, onNoteChange }: {
 
 
   // 添加主题状态
-  const [theme, setTheme] = useState<'light' | 'dark' | 'miku'>('light');
+  const [theme, setTheme] = useState<'dark' | 'read' | 'miku'>('dark');
 
   // 切换主题
   const toggleTheme = () => {
-    const themes: ('light' | 'dark' | 'miku')[] = ['light', 'dark', 'miku'];
+    const themes: ('dark' | 'read' | 'miku')[] = ['dark', 'read', 'miku'];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     const newTheme = themes[nextIndex];
@@ -785,7 +785,11 @@ function NoteEditor({ note, onNoteChange }: {
             onDeleteNote={handleDeleteNote}
           />
           <button className="theme-toggle-btn" onClick={toggleTheme}>
-            {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '🦋'}
+            {{
+              'dark': '🌙',
+              'read': '📖',
+              'miku': '🦋'
+            }[theme]}
           </button>
         </div>
       </header>

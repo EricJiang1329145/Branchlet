@@ -16,7 +16,7 @@
   font-weight: 400;
 
   /* 颜色设置 */
-  color: #e0e0e0;
+  color: #565656;
   background-color: #1a1a1a;
 
   /* 字体渲染优化 */
@@ -35,20 +35,29 @@
 }
 
 /* 笔记节点头部 */
+/**
+ * 定义笔记节点头部样式
+ * 用于控制笔记标题区域的显示效果
+ */
 .note-node-header {
-  padding: 8px 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid #333;
+  padding: 8px 10px;  /* 设置内边距，上下8px，左右10px */
+  cursor: pointer;     /* 鼠标悬停时显示手型指针 */
+  display: flex;       /* 使用弹性布局 */
+  align-items: center; /* 垂直方向居中对齐 */
+  border-bottom: 1px solid #333;  /* 底部边框样式：1px实线，深灰色 */
 }
 
+/* 定义笔记节点头部样式 */
 .note-node-header:hover {
+  /* 当鼠标悬停时的背景颜色设置为深灰色(#333) */
   background-color: #333;
 }
 
+/* 定义已选中的笔记节点头部样式 */
 .note-node-header.selected {
+  /* 已选中状态下的背景颜色设置为稍浅的深灰色(#444) */
   background-color: #444;
+  /* 设置字体加粗以突出显示选中状态 */
   font-weight: bold;
 }
 
@@ -84,13 +93,32 @@
 
 /* 应用头部 */
 .app-header {
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #404040;
+  background: rgba(45, 45, 45, 0.7);
+  border-bottom: 1px solid rgba(64, 64, 64, 0.7);
   padding: 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 标题样式 */
+.app-header h1 {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 24px;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  transform: scale(1);
+}
+
+.app-header h1:hover {
+  transform: scale(1.05);
 }
 
 /* GitHub同步相关样式 */
@@ -236,17 +264,34 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
+  /* 使用transform确保模态框在视口中完全居中 */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  /* 添加滑动渐入动画 */
+  opacity: 0;
+  transform: translateY(-50px);
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
 }
 
+.settings-modal.open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.settings-modal.closing {
+  opacity: 0;
+  transform: translateY(-50px);
+}
+
+/* 设置内容 */
 .settings-content {
   background-color: white;
   padding: 30px;
   border-radius: 8px;
   min-width: 400px;
+  margin: auto;
 }
 
 .settings-content h3 {
@@ -421,7 +466,7 @@
 
 .search-history h4 {
   margin: 0 0 10px 0;
-  color: #e0e0e0;
+  color: #999;
   font-size: 0.9rem;
 }
 
@@ -430,21 +475,23 @@
   padding: 0;
   margin: 0;
 }
-
+/* 搜索历史记录 */
 .search-history li {
-  padding: 5px 10px;
+  padding: 6px 12px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #999;
   font-size: 0.9rem;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin: 2px 0;
 }
 
 .search-history li:hover {
-  background-color: #404040;
-  color: #e0e0e0;
-}
-
-/* 面包屑导航 */
+  background: linear-gradient(135deg, #404040, #303030);
+  color: #2d2d2d76;
+  transform: translateX(4px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+} 面包屑导航 */
 .breadcrumb {
   padding: 0.5rem 1rem;
   border-bottom: 1px solid #404040;
@@ -488,43 +535,53 @@
   user-select: none;
 }
 
+/* 笔记节点头部样式 */
 .note-node-header {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  display: flex;          /* 使用弹性布局 */
+  align-items: center;    /* 垂直居中对齐 */
+  padding: 0.5rem;        /* 内边距为0.5rem */
+  cursor: pointer;       /* 鼠标悬停时显示手型指针 */
+  border-radius: 4px;     /* 边框圆角为4px */
+  transition: background-color 0.2s;  /* 背景色变化过渡时间为0.2秒 */
 }
 
 /* 增强的悬停效果 */
 .note-node-header {
-  transition: all 0.2s ease; /* 添加过渡效果 */
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 更流畅的过渡效果 */
+  border-radius: 6px; /* 默认圆角 */
+  margin: 0 4px; /* 添加左右间距 */
 }
 
 .note-node-header:hover {
-  background-color: #f0f8ff; /* 悬停时的背景色 */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 添加阴影效果 */
-  transform: translateY(-1px); /* 轻微的上移效果 */
-  border-radius: 4px; /* 添加圆角 */
+  background: linear-gradient(135deg, #464646, #464646); /* 渐变背景 */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1); /* 双层阴影 */
+  transform: translateY(-2px) scale(1.02); /* 上移和轻微放大效果 */
+  border-radius: 6px; /* 悬停时的圆角 */
+  z-index: 2; /* 确保悬停元素在上层 */
+  position: relative; /* 为z-index生效 */
 }
 
 /* 选中节点的样式增强 */
 .note-node-header.selected {
-  background-color: #e6f3ff;
+  background-color: #2e4d6a;
   border-left: 3px solid #007bff;
 }
 
 /* 展开/折叠图标样式优化 */
 .expand-icon {
-  margin-right: 5px;
+  margin-right: 8px;
   color: #666;
-  transition: transform 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform: scale(1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .expand-icon:hover {
   color: #007bff;
   cursor: pointer;
+  transform: scale(1.2);
 }
 
 /* 同步状态图标样式优化 */
@@ -537,13 +594,16 @@
 /* 面包屑导航样式增强 */
 .breadcrumb-item {
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 3px;
-  transition: background-color 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
 }
 
 .breadcrumb-item:hover {
-  background-color: #e9ecef;
+  background: linear-gradient(135deg, #436689, #324961);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .breadcrumb-item.active {
@@ -599,32 +659,35 @@
   padding: 1rem;
 }
 
+/* 笔记标题输入框样式 */
 .note-title-input {
-  font-size: 1.5rem;
-  font-weight: bold;
-  border: none;
-  border-bottom: 1px solid #404040;
-  padding: 0.5rem 0;
-  margin-bottom: 1rem;
-  outline: none;
-  background-color: transparent;
-  color: #e0e0e0;
+  font-size: 1.5rem;        /* 设置字体大小为1.5rem */
+  font-weight: bold;        /* 设置字体粗细为粗体 */
+  border: none;             /* 移除边框 */
+  border-bottom: 1px solid #404040;  /* 添加底部边框，颜色为深灰色 */
+  padding: 0.5rem 0;       /* 设置上下内边距为0.5rem，左右为0 */
+  margin-bottom: 1rem;      /* 设置下外边距为1rem */
+  outline: none;           /* 移除轮廓线 */
+  background-color: transparent;  /* 设置背景为透明 */
+  color: #999;             /* 设置文字颜色为浅灰色 */
 }
 
+/* 笔记标题输入框获取焦点时的样式 */
 .note-title-input:focus {
-  border-bottom-color: #0d6efd;
+  border-bottom-color: #0d6efd;  /* 当获取焦点时，底部边框颜色变为蓝色 */
 }
 
+/* 笔记内容输入框样式 */
 .note-content-input {
-  flex: 1;
-  border: none;
-  resize: none;
-  outline: none;
-  font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.5;
-  background-color: transparent;
-  color: #e0e0e0;
+  flex: 1;                 /* 设置弹性因子为1，占据可用空间 */
+  border: none;             /* 移除边框 */
+  resize: none;            /* 禁止调整大小 */
+  outline: none;           /* 移除轮廓线 */
+  font-family: inherit;    /* 继承父元素的字体族 */
+  font-size: 1rem;         /* 设置字体大小为1rem */
+  line-height: 1.5;        /* 设置行高为1.5 */
+  background-color: transparent;  /* 设置背景为透明 */
+  color: #999              /* 设置文字颜色为浅灰色 */
 }
 
 /* 占位符 */
@@ -811,7 +874,7 @@ button {
 
   .note-title-input,
   .note-content-input {
-    color: #0f0f0f;
+    color: #844040;
   }
 
   .note-title-input {
@@ -819,12 +882,12 @@ button {
   }
 
   .note-node-header:hover {
-    background-color: #f0f0f0;
+    background-color: #7a6767;
   }
 
   .note-node-header.selected {
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: #506472;
+    color: #245f99;
   }
 
   .expand-icon {
@@ -952,12 +1015,16 @@ button {
 }
 
 [data-theme='dark'] .note-node-header:hover {
-  background-color: var(--node-hover);
+  background: linear-gradient(135deg, var(--node-hover), #4d4d4d);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  transform: translateY(-2px) scale(1.02);
+  z-index: 2;
+  position: relative;
 }
 
 [data-theme='dark'] .note-node-header.selected {
   background-color: var(--node-selected);
-  color: var(--header-text);
+  color: #9b8484 !important; /* 改为灰色，避免白色在深色背景下过于刺眼 */
 }
 
 [data-theme='dark'] .expand-icon {
@@ -989,7 +1056,9 @@ button {
 }
 
 [data-theme='dark'] .breadcrumb-popup-item:hover {
-  background-color: var(--breadcrumb-popup-item-hover);
+  background: linear-gradient(135deg, var(--breadcrumb-popup-item-hover), #4d4d4d);
+  transform: translateX(4px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 [data-theme='dark'] .context-menu {
@@ -1103,7 +1172,11 @@ button {
 }
 
 [data-theme='miku'] .note-node-header:hover {
-  background-color: var(--node-hover);
+  background: linear-gradient(135deg, var(--node-hover), #648181);
+  box-shadow: 0 4px 8px rgba(57, 197, 187, 0.3), 0 2px 4px rgba(57, 197, 187, 0.2);
+  transform: translateY(-2px) scale(1.02);
+  z-index: 2;
+  position: relative;
 }
 
 [data-theme='miku'] .note-node-header.selected {
@@ -1140,7 +1213,9 @@ button {
 }
 
 [data-theme='miku'] .breadcrumb-popup-item:hover {
-  background-color: var(--breadcrumb-popup-item-hover);
+  background: linear-gradient(135deg, var(--breadcrumb-popup-item-hover), #a8e6e6);
+  transform: translateX(4px);
+  box-shadow: 0 2px 4px rgba(57, 197, 187, 0.3);
 }
 
 [data-theme='miku'] .context-menu {

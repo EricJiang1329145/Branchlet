@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useImperativeHandle, useRef } from 'react';
 import { Octokit } from '@octokit/rest';
 
 interface GithubSyncProps {
@@ -8,7 +8,7 @@ interface GithubSyncProps {
   onDeleteNote?: (noteId: string) => void;
 }
 
-const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote }: GithubSyncProps, ref) => {
+const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, ref }: GithubSyncProps & { ref?: React.RefObject<any> }) => {
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -706,6 +706,50 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
     }
   };
 
+  // 添加状态来跟踪模态框的动画状态
+  const [isSettingsModalClosing, setIsSettingsModalClosing] = useState(false);
+  const [isSettingsModalOpening, setIsSettingsModalOpening] = useState(false);
+  const [isDeleteModalClosing, setIsDeleteModalClosing] = useState(false);
+  const [isDeleteModalOpening, setIsDeleteModalOpening] = useState(false);
+
+  // 修改设置模态框的打开函数
+  const openSettingsModal = () => {
+    setIsSettingsOpen(true);
+    // 延迟添加.open类，确保CSS过渡动画能够正常工作
+    setTimeout(() => {
+      setIsSettingsModalOpening(true);
+    }, 10);
+  };
+
+  // 修改删除确认模态框的打开函数
+  const openDeleteModal = () => {
+    setIsDeleteModalOpen(true);
+    // 延迟添加.open类，确保CSS过渡动画能够正常工作
+    setTimeout(() => {
+      setIsDeleteModalOpening(true);
+    }, 10);
+  };
+
+  // 修改设置模态框的关闭函数
+  const closeSettingsModal = () => {
+    setIsSettingsModalClosing(true);
+    setIsSettingsModalOpening(false);
+    setTimeout(() => {
+      setIsSettingsOpen(false);
+      setIsSettingsModalClosing(false);
+    }, 300); // 与CSS中的transition时间保持一致
+  };
+
+  // 修改删除确认模态框的关闭函数
+  const closeDeleteModal = () => {
+    setIsDeleteModalClosing(true);
+    setIsDeleteModalOpening(false);
+    setTimeout(() => {
+      setIsDeleteModalOpen(false);
+      setIsDeleteModalClosing(false);
+    }, 300); // 与CSS中的transition时间保持一致
+  };
+
   // 将pullNotes、resetRepository和deleteNote方法暴露给父组件
   useImperativeHandle(ref, () => ({
     pullNotes,
@@ -759,7 +803,7 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
       {/* 设置按钮 */}
       <button 
         className="settings-btn"
-        onClick={() => setIsSettingsOpen(true)}
+        onClick={openSettingsModal}
         title="GitHub设置"
       >
         设置
@@ -767,7 +811,7 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
       
       {/* 删除确认模态框 */}
       {isDeleteModalOpen && (
-        <div className="settings-modal">
+        <div className={`settings-modal ${isDeleteModalClosing ? 'closing' : (isDeleteModalOpening ? 'open' : '')}`}>
           <div className="settings-content">
             <h3>确认删除笔记</h3>
             <p>您确定要删除笔记 "{selectedNode?.title}" 及其所有子笔记吗？</p>
@@ -787,15 +831,15 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
             </div>
             <div className="settings-actions">
               <button onClick={confirmDeleteNote}>确认删除</button>
-              <button onClick={() => setIsDeleteModalOpen(false)}>取消</button>
+              <button onClick={closeDeleteModal}>取消</button>
             </div>
           </div>
-      </div>
-    )}
+        </div>
+      )}
     
     {/* 设置模态框 */}
       {isSettingsOpen && (
-        <div className="settings-modal">
+        <div className={`settings-modal ${isSettingsModalClosing ? 'closing' : (isSettingsModalOpening ? 'open' : '')}`}>
           <div className="settings-content">
             <h3>GitHub设置</h3>
             <div className="form-group">
@@ -858,11 +902,11 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
             </div>
             <div className="settings-actions">
               <button onClick={saveCredentials}>保存</button>
-              <button onClick={() => setIsSettingsOpen(false)}>取消</button>
+              <button onClick={closeSettingsModal}>取消</button>
               <button 
                 className="reset-repo-btn"
                 onClick={() => {
-                  setIsSettingsOpen(false);
+                  closeSettingsModal();
                   setTimeout(() => {
                     if (window.confirm('您确定要重置仓库到出厂默认状态吗？这将删除所有笔记，只保留根笔记和结构文件。')) {
                       resetRepository();
@@ -878,6 +922,6 @@ const GithubSync = forwardRef(({ onNotesSync, notes, selectedNode, onDeleteNote 
       )}
     </div>
   );
-});
+};
 
 export default GithubSync;
