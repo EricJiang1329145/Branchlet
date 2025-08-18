@@ -16,8 +16,20 @@
   font-weight: 400;
 
   /* 颜色设置 */
-  color: #565656;
+  color: #da7945;
   background-color: #1a1a1a;
+  
+  /* 层级背景色 */
+  --level-0-bg: #c30000;
+  --level-1-bg: #a10000;
+  --level-2-bg: #6a0000;
+  --level-3-bg: #5b1616;
+  --level-4-bg: #532f2f;
+  --level-5-bg: #6e5454;
+  --level-6-bg: #736161;
+  --level-7-bg: #9b8d8d;
+  --level-8-bg: #989595;
+  --level-9-bg: #d87474;
 
   /* 字体渲染优化 */
   font-synthesis: none;
@@ -45,6 +57,49 @@
   display: flex;       /* 使用弹性布局 */
   align-items: center; /* 垂直方向居中对齐 */
   border-bottom: 1px solid #333;  /* 底部边框样式：1px实线，深灰色 */
+  /* 基础背景色 */
+  background-color: var(--level-0-bg);
+}
+
+/* 基于层级的背景色 */
+.note-node-header.level-0 {
+  background-color: var(--level-0-bg);
+}
+
+.note-node-header.level-1 {
+  background-color: var(--level-1-bg);
+}
+
+.note-node-header.level-2 {
+  background-color: var(--level-2-bg);
+}
+
+.note-node-header.level-3 {
+  background-color: var(--level-3-bg);
+}
+
+.note-node-header.level-4 {
+  background-color: var(--level-4-bg);
+}
+
+.note-node-header.level-5 {
+  background-color: var(--level-5-bg);
+}
+
+.note-node-header.level-6 {
+  background-color: var(--level-6-bg);
+}
+
+.note-node-header.level-7 {
+  background-color: var(--level-7-bg);
+}
+
+.note-node-header.level-8 {
+  background-color: var(--level-8-bg);
+}
+
+.note-node-header.level-9 {
+  background-color: var(--level-9-bg);
 }
 
 /* 定义笔记节点头部样式 */
