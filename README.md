@@ -16,6 +16,11 @@ Branchlet 是一个基于 Tauri、React 和 TypeScript 构建的桌面笔记应�
 - [React](https://reactjs.org/) - 用于构建用户界面的 JavaScript 库
 - [TypeScript](https://www.typescriptlang.org/) - JavaScript 的超集，添加了静态类型定义
 - [Vite](https://vitejs.dev/) - 快速的构建工具
+- chinese-lunar-calendar (农历计算)
+- liquid-glass-react (玻璃拟态效果)
+- levenshtein (编辑距离算法)
+- framer-motion (动画效果)
+- react-window (虚拟滚动)
 
 ## 推荐的 IDE 设置
 
@@ -43,17 +48,20 @@ npm install
 - `@tauri-apps/api`: ^2
 - `@tauri-apps/plugin-fs`: ^2.4.1
 - `@tauri-apps/plugin-opener`: ^2
+- `chinese-lunar`: ^0.1.4
+- `chinese-lunar-calendar`: ^1.0.1
 - `framer-motion`: ^12.23.12
-- `react`: ^18.3.1
-- `react-dom`: ^18.3.1
+- `liquid-glass-react`: ^1.1.1
+- `react`: ^19.1.1
+- `react-dom`: ^19.0.0
 - `react-window`: ^1.8.11
 - `uuid`: ^11.1.0
 
 #### 开发环境依赖
 
 - `@tauri-apps/cli`: ^2
-- `@types/react`: ^18.3.1
-- `@types/react-dom`: ^18.3.1
+- `@types/react`: ^19.0.0
+- `@types/react-dom`: ^19.0.0
 - `@types/react-window`: ^1.8.8
 - `@types/uuid`: ^10.0.0
 - `@vitejs/plugin-react`: ^4.3.4
@@ -112,17 +120,27 @@ Branchlet 支持将笔记自动同步到 GitHub 仓库进行备份和跨设备�
 
 ```
 src/
-├── App.tsx          # 主应用组件
+├── App.css           # 主应用样式
+├── App.tsx           # 主应用组件
+├── Clock.css         # 时钟组件样式
+├── Clock.tsx         # 时钟组件
 ├── GithubSync.tsx    # GitHub 同步功能组件
 ├── NoteStructureManager.ts # 笔记结构管理器
+├── assets/           # 静态资源
+├── chinese-lunar-calendar.d.ts # 中文农历类型声明
+├── levenshtein.ts    # 字符串相似度算法
 ├── main.tsx          # 应用入口点
+├── types.ts          # 全局类型定义
 └── vite-env.d.ts     # TypeScript 声明文件
 
 src-tauri/
 ├── src/
 │   ├── main.rs       # Tauri 后端主文件
 │   └── lib.rs        # Tauri 命令模块
-└── tauri.conf.json   # Tauri 配置文件
+├── tauri.conf.json   # Tauri 配置文件
+├── build.rs          # Rust 构建脚本
+├── Cargo.toml        # Rust 依赖配置
+└── capabilities/     # Tauri 权限配置
 ```
 
 ## 工作流程
@@ -192,23 +210,39 @@ graph TD
 1. **App.tsx**: 主应用组件，负责整体状态管理和UI渲染
 2. **GithubSync.tsx**: GitHub同步功能组件，处理与GitHub的交互
 3. **NoteStructureManager.ts**: 笔记结构管理器，管理笔记的层级结构
+4. **Clock.tsx**: 时钟组件，显示当前时间和农历
+5. **levenshtein.ts**: 编辑距离算法实现，用于搜索功能
 
 ### App.tsx
 - 管理笔记树状态
 - 处理用户交互（创建、编辑、删除、搜索笔记）
 - 与GithubSync组件通信
+- 主题切换功能
+- 用户活动状态管理
 
 ### GithubSync.tsx
 - 使用Octokit与GitHub API交互
 - 处理笔记的拉取和推送
 - 管理GitHub Token和同步设置
 - 提供重置仓库功能
+- 自动同步定时器
+- 删除指定笔记功能
 
 ### NoteStructureManager.ts
 - 管理笔记的层级结构
 - 提供添加、删除、移动笔记的方法
 - 重建笔记树结构
 - 管理笔记的父子关系
+- 计算笔记路径
+
+### Clock.tsx
+- 显示当前时间（带翻页动画效果）
+- 显示农历信息
+- 显示星期和节假日
+
+### levenshtein.ts
+- 计算字符串编辑距离
+- 计算搜索结果相似度
 
 ## 许可证
 

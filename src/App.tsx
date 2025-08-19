@@ -453,10 +453,7 @@ function NoteEditor({ note, onNoteChange }: {
     setSelectedNode(node);
   };
 
-  // 处理节点删除
-  const handleNodeDelete = (nodeId: string) => {
-    handleDeleteNote(nodeId);
-  };
+
 
   // 处理笔记内容变化
   const handleNoteChange = (updatedNote: NoteNode) => {
