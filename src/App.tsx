@@ -92,9 +92,10 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNode
   
   // 如果有父节点且选中的不是根节点，添加".."选项到列表开头
   const showParentOption = parentNode !== null && selectedNode?.id !== 'root';
-  const itemCount = showParentOption ? flattenedNodes.length + 1 : flattenedNodes.length;
+  // 如果显示父选项，则还需要显示当前选中的节点，所以总数要加2
+  const itemCount = showParentOption ? flattenedNodes.length + 2 : flattenedNodes.length;
   
-  // 自定义的列表项组件，用于处理".."选项
+  // 自定义的列表项组件，用于处理".."选项和当前选中笔记
   const CustomNoteTreeNode = ({ 
     data, 
     index, 
@@ -107,7 +108,8 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNode
       parentNode: NoteNode | null,
       showParentOption: boolean,
       onUpdateNodes: (nodes: NoteNode[]) => void,
-      noteNodes: NoteNode[]
+      noteNodes: NoteNode[],
+      selectedNode: NoteNode | null
     }, 
     index: number, 
     style: React.CSSProperties 
@@ -127,10 +129,31 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNode
       );
     }
     
+    // 如果是显示当前选中笔记的选项
+    if (showParentOption && data.selectedNode && index === 1) {
+      return (
+        <div style={style}>
+          <div 
+            className="note-node-header selected"
+            style={{ paddingLeft: '10px', fontWeight: 'bold' }}
+          >
+            <span className="node-title">{data.selectedNode.title}</span>
+          </div>
+        </div>
+      );
+    }
+    
     // 调整索引以匹配flattenedNodes数组
-    const actualIndex = showParentOption ? index - 1 : index;
+    // 如果显示父选项和当前选中节点，则索引需要减去2
+    const actualIndex = showParentOption ? index - 2 : index;
     
     const { flattenedNodes: actualFlattenedNodes, selectedNodeId, onNodeSelect: actualOnNodeSelect } = data;
+    
+    // 添加边界检查，确保actualIndex有效
+    if (actualIndex < 0 || actualIndex >= actualFlattenedNodes.length) {
+      return <div style={style}></div>; // 返回空的div以避免错误
+    }
+    
     const { node, level } = actualFlattenedNodes[actualIndex];
     
     const hasChildren = node.children.length > 0;
@@ -193,7 +216,8 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNode
                 parentNode,
                 showParentOption,
                 onUpdateNodes,
-                noteNodes
+                noteNodes,
+                selectedNode
               }}
         width="100%"
       >
