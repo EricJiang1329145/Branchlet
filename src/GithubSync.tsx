@@ -37,7 +37,29 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     if (savedInactiveBlur) {
       setInactiveBlur(parseInt(savedInactiveBlur, 10));
     }
+    
+    console.log('初始化非活动时间设置:', { inactiveTime, inactiveBlur });
   }, []);
+
+  // 监听自动同步间隔变更
+  useEffect(() => {
+    console.log('检测到自动同步间隔变更:', autoSyncInterval);
+  }, [autoSyncInterval]);
+
+  // 监听非活动时间设置变更
+  useEffect(() => {
+    console.log('检测到非活动时间设置变更:', inactiveTime);
+  }, [inactiveTime]);
+
+  // 监听非活动模糊程度设置变更
+  useEffect(() => {
+    console.log('检测到非活动模糊程度设置变更:', inactiveBlur);
+  }, [inactiveBlur]);
+
+  // 监听自动选中新建笔记设置变更
+  useEffect(() => {
+    console.log('检测到自动选中新建笔记设置变更:', autoSelectNewNote);
+  }, [autoSelectNewNote]);
 
   // 初始化时从本地存储获取token和username
   useEffect(() => {
@@ -51,6 +73,8 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     if (savedAutoSyncInterval) {
       setAutoSyncInterval(parseInt(savedAutoSyncInterval, 10));
     }
+    
+    console.log('初始化GitHub凭证:', { token: savedToken ? '已设置' : '未设置', username: savedUsername || '未设置', autoSyncInterval: savedAutoSyncInterval || '未设置' });
   }, []);
 
   // 处理自动同步
@@ -59,6 +83,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     if (autoSyncTimer) {
       clearInterval(autoSyncTimer);
       setAutoSyncTimer(null);
+      console.log('清除之前的自动同步定时器');
     }
     
     // 如果设置了自动同步间隔且大于0，则启动新的定时器
@@ -66,17 +91,20 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       const timer = setInterval(() => {
         // 只有在空闲状态下才执行自动同步
         if (syncStatus === 'idle') {
+          console.log(`执行自动同步，间隔: ${autoSyncInterval}分钟`);
           pullNotes();
         }
       }, autoSyncInterval * 60 * 1000); // 转换为毫秒
       
       setAutoSyncTimer(timer);
+      console.log(`启动自动同步定时器，间隔: ${autoSyncInterval}分钟`);
     }
     
     // 组件卸载时清除定时器
     return () => {
       if (autoSyncTimer) {
         clearInterval(autoSyncTimer);
+        console.log('组件卸载时清除自动同步定时器');
       }
     };
   }, [autoSyncInterval]);
@@ -86,28 +114,44 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     // 清除之前存储的用户名
     setUsername('');
     localStorage.removeItem('github_username');
+    console.log('清除之前存储的用户名');
     
     if (token) {
+      console.log('Token发生变化，重新获取用户名');
       fetchUsernameFromToken();
     }
   }, [token]);
 
   // 保存token、用户名、自动同步设置、非活动时间和模糊程度到本地存储
   const saveCredentials = () => {
-    localStorage.setItem('github_token', token);
-    localStorage.setItem('github_username', username);
-    localStorage.setItem('auto_sync_interval', autoSyncInterval.toString());
-    localStorage.setItem('inactive_time', inactiveTime.toString());
-    localStorage.setItem('inactive_blur', inactiveBlur.toString());
-    setIsSettingsOpen(false);
+    console.log('开始保存GitHub凭证和设置');
+    try {
+      localStorage.setItem('github_token', token);
+      localStorage.setItem('github_username', username);
+      localStorage.setItem('auto_sync_interval', autoSyncInterval.toString());
+      localStorage.setItem('inactive_time', inactiveTime.toString());
+      localStorage.setItem('inactive_blur', inactiveBlur.toString());
+      setIsSettingsOpen(false);
+      console.log('保存GitHub凭证和设置到本地存储:', { token: token ? '已设置' : '未设置', username, autoSyncInterval, inactiveTime, inactiveBlur });
+    } catch (error) {
+      console.error('保存GitHub凭证和设置到本地存储失败:', error);
+    }
   };
 
   // 创建Octokit实例
   const getOctokit = () => {
     if (!token) {
-      throw new Error('请先设置GitHub token');
+      const errorMsg = 'GitHub token未设置';
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
-    return new Octokit({ auth: token });
+    console.log('创建Octokit实例');
+    try {
+      return new Octokit({ auth: token });
+    } catch (error) {
+      console.error('创建Octokit实例失败:', error);
+      throw error;
+    }
   };
 
   // 通过token获取用户名
@@ -115,29 +159,51 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
     if (!token) return;
     
     try {
+      console.log('开始获取GitHub用户名');
       const octokit = getOctokit();
       const { data } = await octokit.rest.users.getAuthenticated();
       setUsername(data.login);
       localStorage.setItem('github_username', data.login);
-    } catch (error) {
+      console.log('成功获取GitHub用户名:', data.login);
+    } catch (error: any) {
       console.error('获取用户名失败:', error);
+      // 提供更友好的错误消息
+      if (error.message.includes('Bad credentials')) {
+        console.error('Token无效，请检查您的GitHub Token设置');
+      } else if (error.status === 401) {
+        console.error('认证失败，请检查您的GitHub Token');
+      } else if (error.status === 403) {
+        console.error('访问被拒绝，可能是因为权限不足或API速率限制');
+      }
     }
   };
 
   // 创建仓库
   const createRepository = async () => {
     try {
+      console.log('开始检查或创建GitHub仓库');
       const octokit = getOctokit();
       const { data } = await octokit.rest.repos.createForAuthenticatedUser({
         name: 'Branchlet-nts',
         description: 'Branchlet notes storage',
         auto_init: true
       });
+      console.log('成功创建GitHub仓库:', data.name);
       return data;
     } catch (error: any) {
       if (error.status === 422) {
         // 仓库已存在，这是正常的
+        console.log('GitHub仓库已存在');
         return null;
+      }
+      console.error('创建仓库失败:', error);
+      // 提供更详细的错误信息
+      if (error.status === 401) {
+        console.error('认证失败，无法创建仓库，请检查您的GitHub Token');
+      } else if (error.status === 403) {
+        console.error('权限不足，无法创建仓库');
+      } else if (error.message.includes('rate limit')) {
+        console.error('遇到GitHub API速率限制');
       }
       throw error;
     }
@@ -147,6 +213,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
   const retryOperation = async (operation: () => Promise<any>, maxRetries: number = 3, delay: number = 1000) => {
     for (let i = 0; i < maxRetries; i++) {
       try {
+        console.log(`执行操作，尝试次数: ${i + 1}`);
         return await operation();
       } catch (error: any) {
         // 如果是速率限制错误且不是最后一次重试，则等待后重试
@@ -155,6 +222,11 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
           await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i))); // 指数退避
           continue;
         }
+        console.error(`操作失败，尝试次数: ${i + 1}`, error);
+        // 添加更详细的错误信息
+        if (i === maxRetries - 1) {
+          console.error(`操作最终失败，已达到最大重试次数 ${maxRetries}`);
+        }
         throw error;
       }
     }
@@ -162,6 +234,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
   // 从GitHub拉取笔记
   const pullNotes = async () => {
+    console.log('开始从GitHub拉取笔记');
     setSyncStatus('syncing');
     setSyncMessage('正在从GitHub拉取笔记...');
     
@@ -170,6 +243,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       // 如果用户名为空，先获取用户名
       if (!username) {
+        console.log('用户名为空，先获取用户名');
         await retryOperation(async () => {
           await fetchUsernameFromToken();
           
@@ -181,9 +255,11 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       }
       
       // 检查仓库是否存在，如果不存在则创建
+      console.log('检查或创建仓库');
       await retryOperation(createRepository);
       
       // 获取仓库中的文件
+      console.log('获取仓库中的文件');
       const { data } = await retryOperation(() => octokit.rest.repos.getContent({
         owner: username,
         repo: 'Branchlet-nts',
@@ -194,10 +270,14 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       const structureFile = (data as any[]).find((file: any) => file.name === 'structure.json' && file.type === 'file');
       const noteFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file' && file.name !== 'structure.json');
       
+      console.log('找到文件:', { structureFile: structureFile ? '存在' : '不存在', noteFilesCount: noteFiles.length });
+      
       // 如果没有结构文件，使用旧的同步方式
       if (!structureFile) {
+        console.log('未找到结构文件，使用旧的同步方式');
         // 下载并解析所有笔记文件
         const notesPromises = noteFiles.map(async (file: any) => {
+          console.log(`下载笔记文件: ${file.path}`);
           const { data: fileData } = await retryOperation(() => octokit.rest.repos.getContent({
             owner: username,
             repo: 'Branchlet-nts',
@@ -212,6 +292,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         const pulledNotes = await Promise.all(notesPromises);
         
         // 更新应用中的笔记
+        console.log(`成功拉取 ${pulledNotes.length} 个笔记`);
         onNotesSync(pulledNotes);
         
         setSyncStatus('success');
@@ -226,6 +307,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       }
       
       // 下载结构文件
+      console.log('下载结构文件');
       const { data: structureData } = await retryOperation(() => octokit.rest.repos.getContent({
         owner: username,
         repo: 'Branchlet-nts',
@@ -236,9 +318,12 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       const structureContent = decodeURIComponent(escape(atob((structureData as any).content)));
       const structure = JSON.parse(structureContent);
       
+      console.log('成功解析结构文件');
+      
       // 下载并解析所有笔记内容文件
       const noteContents: Record<string, any> = {};
       const noteContentPromises = noteFiles.map(async (file: any) => {
+        console.log(`下载笔记内容文件: ${file.path}`);
         const { data: fileData } = await retryOperation(() => octokit.rest.repos.getContent({
           owner: username,
           repo: 'Branchlet-nts',
@@ -253,7 +338,10 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       await Promise.all(noteContentPromises);
       
+      console.log(`成功下载并解析 ${noteFiles.length} 个笔记内容文件`);
+      
       // 重建笔记树
+      console.log('重建笔记树');
       const noteStructureManager = new (await import('./NoteStructureManager')).default();
       noteStructureManager.initializeStructureFromData(structure);
       const pulledNotes = noteStructureManager.rebuildNoteTree(noteContents);
@@ -270,6 +358,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       const syncedNotes = markNotesAsSynced(pulledNotes);
       
       // 更新应用中的笔记
+      console.log(`成功重建 ${syncedNotes.length} 个笔记`);
       onNotesSync(syncedNotes);
       
       setSyncStatus('success');
@@ -285,11 +374,26 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       setSyncStatus('error');
       
       // 提供更友好的错误消息
+      let errorMessage = '未知错误';
       if (error.message.includes('rate limit')) {
-        setSyncMessage('GitHub API速率限制，请稍后再试或减少同步频率');
+        errorMessage = 'GitHub API速率限制，请稍后再试或减少同步频率';
+      } else if (error.status === 401) {
+        errorMessage = '认证失败，请检查您的GitHub Token';
+      } else if (error.status === 403) {
+        errorMessage = '访问被拒绝，可能是因为权限不足';
+      } else if (error.status === 404) {
+        errorMessage = '仓库未找到，请检查仓库名称';
       } else {
-        setSyncMessage(`拉取失败: ${error.message}`);
+        errorMessage = `拉取失败: ${error.message}`;
       }
+      
+      console.error('拉取笔记失败详细信息:', { 
+        status: error.status, 
+        message: error.message, 
+        errorMessage 
+      });
+      
+      setSyncMessage(errorMessage);
       
       // 5秒后清除状态消息
       setTimeout(() => {
@@ -302,6 +406,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
   // 推送笔记到GitHub
   // 在pushNotes方法中添加根笔记检查
   const pushNotes = async () => {
+    console.log('开始推送笔记到GitHub');
     setSyncStatus('syncing');
     setSyncMessage('正在推送笔记到GitHub...');
     
@@ -310,6 +415,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       // 如果用户名为空，先获取用户名
       if (!username) {
+        console.log('用户名为空，先获取用户名');
         await retryOperation(async () => {
           await fetchUsernameFromToken();
           
@@ -321,28 +427,34 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       }
       
       // 检查仓库是否存在，如果不存在则创建
+      console.log('检查或创建仓库');
       await retryOperation(createRepository);
       
       // 获取现有的文件列表
       let existingFiles: any[] = [];
       try {
+        console.log('获取现有文件列表');
         const { data } = await retryOperation(() => octokit.rest.repos.getContent({
           owner: username,
           repo: 'Branchlet-nts',
           path: ''
         }));
         existingFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
+        console.log(`找到 ${existingFiles.length} 个现有文件`);
       } catch (error) {
         // 如果获取文件列表失败，继续执行推送操作
         console.warn('获取现有文件列表失败:', error);
       }
       
       // 创建笔记结构管理器并初始化
+      console.log('创建笔记结构管理器');
       const noteStructureManager = new (await import('./NoteStructureManager')).default();
       noteStructureManager.initializeStructure(notes);
       
       // 获取笔记结构
       const structure = noteStructureManager.getStructure();
+      
+      console.log('获取笔记结构');
       
       // 推送结构文件
       const structureFileName = 'structure.json';
@@ -351,6 +463,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       if (existingStructureFile) {
         // 更新现有结构文件
+        console.log('更新现有结构文件');
         await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
           owner: username,
           repo: 'Branchlet-nts',
@@ -361,6 +474,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         }));
       } else {
         // 创建新结构文件
+        console.log('创建新结构文件');
         await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
           owner: username,
           repo: 'Branchlet-nts',
@@ -388,8 +502,11 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       // 过滤出未同步的笔记
       const unsyncedNotes = allNotes.filter(note => note.synced === false);
 
+      console.log(`找到 ${unsyncedNotes.length} 个未同步的笔记`);
+
       // 如果没有未同步的笔记，则直接返回成功
       if (unsyncedNotes.length === 0) {
+        console.log('没有需要同步的笔记');
         setSyncStatus('success');
         setSyncMessage('没有需要同步的笔记!');
         
@@ -407,6 +524,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       // 为每个未同步的笔记创建或更新文件
       // 逐个推送笔记以避免触发速率限制
       for (const note of unsyncedNotes) {
+        console.log(`推送笔记: ${note.title} (${note.id})`);
         const fileName = `${note.id}.json`;
         // 使用encodeURIComponent和unescape处理非Latin1字符
         const content = btoa(unescape(encodeURIComponent(JSON.stringify({
@@ -421,6 +539,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         
         if (existingFile) {
           // 更新现有文件
+          console.log(`更新现有笔记文件: ${fileName}`);
           await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
             owner: username,
             repo: 'Branchlet-nts',
@@ -431,6 +550,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
           }));
         } else {
           // 创建新文件
+          console.log(`创建新笔记文件: ${fileName}`);
           await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
             owner: username,
             repo: 'Branchlet-nts',
@@ -444,6 +564,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
+      console.log(`成功推送 ${unsyncedNotes.length} 个笔记`);
       setSyncStatus('success');
       setSyncMessage(`${unsyncedNotes.length} 个笔记推送成功!`);
       
@@ -457,11 +578,26 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       setSyncStatus('error');
       
       // 提供更友好的错误消息
+      let errorMessage = '未知错误';
       if (error.message.includes('rate limit')) {
-        setSyncMessage('GitHub API速率限制，请稍后再试或减少同步频率');
+        errorMessage = 'GitHub API速率限制，请稍后再试或减少同步频率';
+      } else if (error.status === 401) {
+        errorMessage = '认证失败，请检查您的GitHub Token';
+      } else if (error.status === 403) {
+        errorMessage = '访问被拒绝，可能是因为权限不足';
+      } else if (error.status === 404) {
+        errorMessage = '仓库未找到，请检查仓库名称';
       } else {
-        setSyncMessage(`推送失败: ${error.message}`);
+        errorMessage = `推送失败: ${error.message}`;
       }
+      
+      console.error('推送笔记失败详细信息:', { 
+        status: error.status, 
+        message: error.message, 
+        errorMessage 
+      });
+      
+      setSyncMessage(errorMessage);
       
       // 5秒后清除状态消息
       setTimeout(() => {
@@ -473,20 +609,27 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
   // 删除笔记
   const handleDeleteNote = () => {
+    console.log('处理删除笔记请求');
     if (selectedNode && onDeleteNote) {
       // 检查是否是根笔记
       const isRootNote = notes.some(note => note.id === selectedNode.id && note.title === '我的笔记');
+      
+      console.log('检查是否是根笔记:', { isRootNote, selectedNodeId: selectedNode.id });
       
       // 如果不是根笔记，则显示删除确认模态框
       if (!isRootNote) {
         setIsDeleteModalOpen(true);
         setDeleteConfirmationId('');
+        console.log('显示删除确认模态框');
+      } else {
+        console.log('不能删除根笔记');
       }
     }
   };
 
   // 确认删除笔记
   const confirmDeleteNote = () => {
+    console.log('确认删除笔记', { selectedNodeId: selectedNode?.id, deleteConfirmationId });
     if (selectedNode && onDeleteNote && deleteConfirmationId === selectedNode.id) {
       onDeleteNote(selectedNode.id);
       setIsDeleteModalOpen(false);
@@ -495,6 +638,8 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       // 显示删除成功消息
       setSyncStatus('success');
       setSyncMessage('笔记删除成功!');
+      
+      console.log('笔记删除成功');
       
       // 3秒后清除状态消息
       setTimeout(() => {
@@ -506,6 +651,8 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       setSyncStatus('error');
       setSyncMessage('UUID不匹配，无法删除笔记!');
       
+      console.log('UUID不匹配，无法删除笔记');
+      
       // 3秒后清除状态消息
       setTimeout(() => {
         setSyncStatus('idle');
@@ -516,6 +663,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
     // 重置仓库到出厂默认状态
   const resetRepository = async () => {
+    console.log('开始重置仓库到出厂默认状态');
     setSyncStatus('syncing');
     setSyncMessage('正在重置仓库...');
     
@@ -524,6 +672,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       // 如果用户名为空，先获取用户名
       if (!username) {
+        console.log('用户名为空，先获取用户名');
         await retryOperation(async () => {
           await fetchUsernameFromToken();
           
@@ -535,29 +684,35 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       }
       
       // 检查仓库是否存在，如果不存在则创建
+      console.log('检查或创建仓库');
       await retryOperation(createRepository);
       
       // 获取现有的文件列表
       let existingFiles: any[] = [];
       try {
+        console.log('获取现有文件列表');
         const { data } = await retryOperation(() => octokit.rest.repos.getContent({
           owner: username,
           repo: 'Branchlet-nts',
           path: ''
         }));
         existingFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
+        console.log(`找到 ${existingFiles.length} 个现有文件`);
       } catch (error) {
         // 如果获取文件列表失败，继续执行推送操作
         console.warn('获取现有文件列表失败:', error);
       }
       
       // 删除所有现有的笔记文件（除了root.json和structure.json）
+      console.log('开始删除现有笔记文件');
       for (const file of existingFiles) {
         // 跳过保留的文件
         if (file.name === 'structure.json') {
+          console.log('跳过保留的结构文件');
           continue;
         }
         
+        console.log(`删除文件: ${file.path}`);
         // 删除文件
         await retryOperation(() => octokit.rest.repos.deleteFile({
           owner: username,
@@ -580,6 +735,8 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         expanded: true
       };
       
+      console.log('创建出厂默认的根笔记');
+      
       // 推送根笔记文件
       const rootFileName = 'root.json';
       const rootContent = btoa(unescape(encodeURIComponent(JSON.stringify(rootNote, null, 2))));
@@ -589,6 +746,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       if (existingRootFile) {
         // 更新现有根笔记文件
+        console.log('更新现有根笔记文件');
         await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
           owner: username,
           repo: 'Branchlet-nts',
@@ -599,6 +757,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         }));
       } else {
         // 创建新根笔记文件
+        console.log('创建新根笔记文件');
         await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
           owner: username,
           repo: 'Branchlet-nts',
@@ -616,6 +775,8 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         }
       };
       
+      console.log('创建出厂默认的结构文件');
+      
       const structureFileName = 'structure.json';
       const structureContent = btoa(unescape(encodeURIComponent(JSON.stringify(defaultStructure, null, 2))));
       
@@ -624,6 +785,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       
       if (existingStructureFile) {
         // 更新现有结构文件
+        console.log('更新现有结构文件');
         await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
           owner: username,
           repo: 'Branchlet-nts',
@@ -634,6 +796,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         }));
       } else {
         // 创建新结构文件
+        console.log('创建新结构文件');
         await retryOperation(() => octokit.rest.repos.createOrUpdateFileContents({
           owner: username,
           repo: 'Branchlet-nts',
@@ -643,6 +806,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         }));
       }
       
+      console.log('仓库重置成功');
       setSyncStatus('success');
       setSyncMessage('仓库重置成功!');
       
@@ -656,11 +820,26 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       setSyncStatus('error');
       
       // 提供更友好的错误消息
+      let errorMessage = '未知错误';
       if (error.message.includes('rate limit')) {
-        setSyncMessage('GitHub API速率限制，请稍后再试或减少同步频率');
+        errorMessage = 'GitHub API速率限制，请稍后再试或减少同步频率';
+      } else if (error.status === 401) {
+        errorMessage = '认证失败，请检查您的GitHub Token';
+      } else if (error.status === 403) {
+        errorMessage = '访问被拒绝，可能是因为权限不足';
+      } else if (error.status === 404) {
+        errorMessage = '仓库未找到，请检查仓库名称';
       } else {
-        setSyncMessage(`重置失败: ${error.message}`);
+        errorMessage = `重置失败: ${error.message}`;
       }
+      
+      console.error('重置仓库失败详细信息:', { 
+        status: error.status, 
+        message: error.message, 
+        errorMessage 
+      });
+      
+      setSyncMessage(errorMessage);
       
       // 5秒后清除状态消息
       setTimeout(() => {
@@ -672,11 +851,13 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
   // 删除指定笔记文件
   const deleteNote = async (noteId: string) => {
+    console.log('开始删除指定笔记文件', { noteId });
     try {
       const octokit = getOctokit();
       
       // 如果用户名为空，先获取用户名
       if (!username) {
+        console.log('用户名为空，先获取用户名');
         await retryOperation(async () => {
           await fetchUsernameFromToken();
           
@@ -688,20 +869,28 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       }
       
       // 检查仓库是否存在，如果不存在则创建
+      console.log('检查或创建仓库');
       await retryOperation(createRepository);
       
       // 获取现有的文件列表
       let existingFiles: any[] = [];
       try {
+        console.log('获取现有文件列表');
         const { data } = await retryOperation(() => octokit.rest.repos.getContent({
           owner: username,
           repo: 'Branchlet-nts',
           path: ''
         }));
         existingFiles = (data as any[]).filter((file: any) => file.name.endsWith('.json') && file.type === 'file');
-      } catch (error) {
+        console.log(`找到 ${existingFiles.length} 个现有文件`);
+      } catch (error: any) {
         // 如果获取文件列表失败，继续执行推送操作
         console.warn('获取现有文件列表失败:', error);
+        // 添加更详细的错误信息
+        console.error('获取现有文件列表失败详细信息:', { 
+          status: error.status, 
+          message: error.message 
+        });
         return; // 如果无法获取文件列表，则无法删除文件
       }
       
@@ -709,8 +898,11 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
       const fileName = `${noteId}.json`;
       const fileToDelete = existingFiles.find((file: any) => file.name === fileName);
       
+      console.log('查找要删除的文件:', { fileName, found: !!fileToDelete });
+      
       // 如果文件存在，则删除它
       if (fileToDelete) {
+        console.log(`删除笔记文件: ${fileName}`);
         await retryOperation(() => octokit.rest.repos.deleteFile({
           owner: username,
           repo: 'Branchlet-nts',
@@ -720,9 +912,17 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
         }));
         
         console.log(`成功删除笔记文件: ${fileName}`);
+      } else {
+        console.log(`未找到要删除的笔记文件: ${fileName}`);
       }
     } catch (error: any) {
       console.error('删除笔记文件失败:', error);
+      // 提供更详细的错误信息
+      console.error('删除笔记文件失败详细信息:', { 
+        status: error.status, 
+        message: error.message 
+      });
+      
       // 不向用户显示错误，因为这是一个后台操作
     }
   };
@@ -735,6 +935,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
   // 修改设置模态框的打开函数
   const openSettingsModal = () => {
+    console.log('打开设置模态框');
     setIsSettingsOpen(true);
     // 延迟添加.open类，确保CSS过渡动画能够正常工作
     setTimeout(() => {
@@ -746,6 +947,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
   // 修改设置模态框的关闭函数
   const closeSettingsModal = () => {
+    console.log('关闭设置模态框');
     setIsSettingsModalClosing(true);
     setIsSettingsModalOpening(false);
     setTimeout(() => {
@@ -756,6 +958,7 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
 
   // 修改删除确认模态框的关闭函数
   const closeDeleteModal = () => {
+    console.log('关闭删除确认模态框');
     setIsDeleteModalClosing(true);
     setIsDeleteModalOpening(false);
     setTimeout(() => {
@@ -900,7 +1103,10 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
               <label>自动同步间隔:</label>
               <select
                 value={autoSyncInterval}
-                onChange={(e) => setAutoSyncInterval(Number(e.target.value))}
+                onChange={(e) => {
+                  console.log('自动同步间隔变更:', { oldValue: autoSyncInterval, newValue: e.target.value });
+                  setAutoSyncInterval(Number(e.target.value));
+                }}
               >
                 <option value="0">不自动同步</option>
                 <option value="10">每10秒</option>
@@ -919,10 +1125,13 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
                 <label>自动选中新建笔记:</label>
                 <label className="switch">
                   <input 
-                    type="checkbox" 
-                    checked={autoSelectNewNote}
-                    onChange={(e) => setAutoSelectNewNote(e.target.checked)}
-                  />
+                  type="checkbox" 
+                  checked={autoSelectNewNote}
+                  onChange={(e) => {
+                    console.log('自动选中新建笔记设置变更:', { oldValue: autoSelectNewNote, newValue: e.target.checked });
+                    setAutoSelectNewNote(e.target.checked);
+                  }}
+                />
                   <span className="slider"></span>
                 </label>
               </div>
@@ -932,7 +1141,10 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
               <input
                 type="number"
                 value={inactiveTime}
-                onChange={(e) => setInactiveTime(Number(e.target.value))}
+                onChange={(e) => {
+                  console.log('非活动时间设置变更:', { oldValue: inactiveTime, newValue: e.target.value });
+                  setInactiveTime(Number(e.target.value));
+                }}
                 min="0"
                 max="60"
               />
@@ -942,7 +1154,10 @@ const GithubSync = ({ onNotesSync, notes, selectedNode, onDeleteNote, autoSelect
               <input
                 type="number"
                 value={inactiveBlur}
-                onChange={(e) => setInactiveBlur(Number(e.target.value))}
+                onChange={(e) => {
+                  console.log('非活动模糊程度设置变更:', { oldValue: inactiveBlur, newValue: e.target.value });
+                  setInactiveBlur(Number(e.target.value));
+                }}
                 min="0"
                 max="20"
               />

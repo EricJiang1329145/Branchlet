@@ -98,6 +98,70 @@ npm run tauri dev
 npm run tauri build
 ```
 
+## 发布应用
+
+### 使用 publish.sh 脚本自动发布
+
+项目包含一个 `scripts/publish.sh` 脚本，可以自动构建 Windows、macOS、Linux 平台的发行版，并将它们上传到 GitHub Releases。
+
+### 前置要求
+
+1. 安装必要的编译目标：
+
+```bash
+rustup target add aarch64-apple-darwin
+rustup target add x86_64-unknown-linux-gnu
+rustup target add x86_64-pc-windows-msvc
+```
+
+2. 创建 GitHub Personal Access Token：
+   - 访问 [GitHub Token 设置页面](https://github.com/settings/tokens/new)
+   - 选择适当的权限（至少需要 `repo` 权限）
+   - 生成 token 并保存
+
+### 使用方法
+
+1. 设置环境变量：
+
+```bash
+export GITHUB_TOKEN=your_github_token
+```
+
+2. 运行发布脚本：
+
+```bash
+./scripts/publish.sh --repo-owner your-github-username --repo-name Branchlet --version 0.1.0
+```
+
+### 脚本功能说明
+
+publish.sh 脚本会自动完成以下步骤：
+- 检查必要的构建工具 (npm, cargo, curl)
+- 清理之前的构建产物
+- 为 macOS、Linux、Windows 构建应用
+- 打包源代码
+- 创建 GitHub Release
+- 上传所有构建产物到 Release
+
+### 上传的文件
+
+脚本会上传以下文件到 GitHub Release：
+- macOS: `branchlet_0.1.0_aarch64.dmg`
+- Linux: `branchlet_0.1.0_amd64.AppImage`
+- Windows: `branchlet_0.1.0_x64_en-US.msi`
+- 源代码包: `branchlet-src-0.1.0.tar.gz`
+
+### 命令行参数
+
+- `--repo-owner <用户名>`: GitHub 用户名 (默认: EricJiang1329145)
+- `--repo-name <仓库名>`: GitHub 仓库名 (默认: Branchlet)
+- `--version <版本号>`: 版本号 (默认: 0.1.0)
+- `-h, --help`: 显示帮助信息
+
+### 环境变量
+
+- `GITHUB_TOKEN`: GitHub Personal Access Token，需要有 repo 权限
+
 ## GitHub 同步设置
 
 Branchlet 支持将笔记自动同步到 GitHub 仓库进行备份和跨设备访问。

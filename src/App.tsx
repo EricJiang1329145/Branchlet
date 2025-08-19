@@ -419,33 +419,47 @@ function NoteEditor({ note, onNoteChange }: {
 
   // 应用启动时自动拉取笔记
   useEffect(() => {
+    // 输出应用启动信息
+    console.log('[应用启动] Branchlet 应用已挂载');
+    console.log('[版本信息] v0.1.0');
+    console.log('[环境信息]', import.meta.env.MODE);
+    console.log('[时间戳]', new Date().toISOString());
+    
     // 检查是否有保存的token
     const savedToken = localStorage.getItem('github_token');
     
     // 如果有token，则自动拉取笔记
     if (savedToken) {
+      console.log('[启动流程] 检测到GitHub token，准备自动同步笔记');
       // 延迟1秒后执行拉取操作，确保组件已完全加载
       const timer = setTimeout(() => {
         if (githubSyncRef.current && githubSyncRef.current.pullNotes) {
+          console.log('[启动流程] 开始自动同步笔记');
           githubSyncRef.current.pullNotes();
         }
       }, 1000);
       
       return () => clearTimeout(timer);
+    } else {
+      console.log('[启动流程] 未检测到GitHub token，跳过自动同步');
     }
     
     // 初始化笔记结构管理器
     noteStructureManager.current.initializeStructure(noteNodes);
+    console.log('[启动流程] 笔记结构管理器初始化完成');
     
     // 从localStorage中获取搜索历史记录
     const savedSearchHistory = localStorage.getItem('searchHistory');
     if (savedSearchHistory) {
       try {
         setSearchHistory(JSON.parse(savedSearchHistory));
+        console.log('[启动流程] 搜索历史记录加载完成');
       } catch (e) {
         console.error('Failed to parse search history:', e);
       }
     }
+    
+    console.log('[应用启动] Branchlet 应用启动完成');
   }, []);
 
   // 处理节点选择
