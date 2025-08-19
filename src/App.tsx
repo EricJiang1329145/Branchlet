@@ -61,13 +61,12 @@ const findParentNode = (nodes: NoteNode[], id: string): NoteNode | null => {
 
 
 // 笔记树组件
-function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNodes, onDeleteNode }: { 
+function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNodes }: { 
   nodes: NoteNode[]; 
   onNodeSelect: (node: NoteNode) => void; 
   selectedNodeId: string | null;
   onUpdateNodes: (nodes: NoteNode[]) => void;
   noteNodes: NoteNode[];
-  onDeleteNode: (nodeId: string) => void;  // 添加删除回调
 }) {
   // 找到当前选中的节点
   const selectedNode = selectedNodeId ? findNode(noteNodes, selectedNodeId) : null;
@@ -983,7 +982,6 @@ function NoteEditor({ note, onNoteChange }: {
             selectedNodeId={selectedNode?.id || null}
             onUpdateNodes={setNoteNodes}
             noteNodes={noteNodes}
-            onDeleteNode={handleNodeDelete}  // 传递删除回调
           />
         </div>
         <div className="note-main">
