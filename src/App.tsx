@@ -10,90 +10,70 @@ import { similarity } from "./levenshtein";
 import { FixedSizeList as List } from 'react-window';
 
 // 扁平化笔记树结构
-const flattenNoteTree = (nodes: NoteNode[], level: number = 0, parentPath: NoteNode[] = [], selectedNodePath?: NoteNode[]): {node: NoteNode, level: number, parentPath: NoteNode[]}[] => {
+const flattenNoteTree = (nodes: NoteNode[], level: number = 0, parentPath: NoteNode[] = []): {node: NoteNode, level: number, parentPath: NoteNode[]}[] => {
   let result: {node: NoteNode, level: number, parentPath: NoteNode[]}[] = [];
   
-  // 如果有选中的节点，计算需要显示的节点
-  if (selectedNodePath && selectedNodePath.length > 0) {
-    const selectedNode = selectedNodePath[selectedNodePath.length - 1];
+  // 直接扁平化所有节点，按照标准的树形结构展开/折叠逻辑
+  nodes.forEach(node => {
+    result.push({ node, level, parentPath });
     
-    // 计算需要显示的路径节点（最多显示4个节点：选中节点及其向上3个层级）
-    const pathToShow = selectedNodePath.length > 4 
-      ? selectedNodePath.slice(selectedNodePath.length - 4) 
-      : selectedNodePath;
-    
-    // 获取需要显示的节点ID集合
-    const nodesToShow = new Set(pathToShow.map(n => n.id));
-    
-    // 添加选中节点的兄弟节点
-    if (selectedNodePath.length > 1) {
-      const parentNode = selectedNodePath[selectedNodePath.length - 2];
-      parentNode.children.forEach(child => nodesToShow.add(child.id));
-    } else {
-      // 如果选中的是根节点，添加所有根节点
-      nodes.forEach(node => nodesToShow.add(node.id));
+    // 如果节点是展开的且有子节点，则递归处理子节点
+    if (node.expanded && node.children.length > 0) {
+      result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node]));
     }
-    
-    // 添加选中节点的子节点
-    selectedNode.children.forEach(child => nodesToShow.add(child.id));
-    
-    nodes.forEach(node => {
-      // 检查当前节点是否应该显示
-      if (nodesToShow.has(node.id)) {
-        result.push({ node, level, parentPath });
-        
-        // 如果节点是展开的且有子节点，则递归处理子节点
-        if (node.expanded && node.children.length > 0) {
-          result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
-        }
-      } else {
-        // 即使节点不在显示集合中，如果它有展开的子节点且子节点在显示集合中，也需要处理
-        if (node.expanded && node.children.length > 0) {
-          const childResults = flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath);
-          // 只有当子节点有需要显示的内容时才添加当前节点
-          if (childResults.length > 0) {
-            result.push({ node, level, parentPath });
-            result = result.concat(childResults);
-          }
-        }
-      }
-    });
-  } else {
-    // 如果没有选中的节点，显示所有根节点及其展开的子节点
-    nodes.forEach(node => {
-      result.push({ node, level, parentPath });
-      
-      // 如果节点是展开的且有子节点，则递归处理子节点
-      if (node.expanded && node.children.length > 0) {
-        result = result.concat(flattenNoteTree(node.children, level + 1, [...parentPath, node], selectedNodePath));
-      }
-    });
-  }
+  });
   
   return result;
+};
+
+// 查找指定ID的节点
+const findNode = (nodes: NoteNode[], id: string): NoteNode | null => {
+  for (const node of nodes) {
+    if (node.id === id) {
+      return node;
+    }
+    if (node.children.length > 0) {
+      const found = findNode(node.children, id);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+};
+
+// 查找指定节点的父节点
+const findParentNode = (nodes: NoteNode[], id: string): NoteNode | null => {
+  for (const node of nodes) {
+    if (node.children.some(child => child.id === id)) {
+      return node;
+    }
+    if (node.children.length > 0) {
+      const found = findParentNode(node.children, id);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
 };
 
 
 
 // 笔记树组件
-function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpdateNodes, noteNodes, onDeleteNode }: { 
+function NoteTree({ nodes, onNodeSelect, selectedNodeId, onUpdateNodes, noteNodes, onDeleteNode }: { 
   nodes: NoteNode[]; 
   onNodeSelect: (node: NoteNode) => void; 
   selectedNodeId: string | null;
-  selectedNodePath?: NoteNode[];
   onUpdateNodes: (nodes: NoteNode[]) => void;
   noteNodes: NoteNode[];
   onDeleteNode: (nodeId: string) => void;  // 添加删除回调
 }) {
   // 找到当前选中的节点
-  const selectedNode = selectedNodePath && selectedNodePath.length > 0 
-    ? selectedNodePath[selectedNodePath.length - 1] 
-    : null;
+  const selectedNode = selectedNodeId ? findNode(noteNodes, selectedNodeId) : null;
   
   // 获取父节点（如果不是根节点）
-  const parentNode = selectedNodePath && selectedNodePath.length > 1 
-    ? selectedNodePath[selectedNodePath.length - 2] 
-    : null;
+  const parentNode = selectedNode ? findParentNode(noteNodes, selectedNode.id) : null;
   
   // 构建要显示的节点列表
   let displayNodes: NoteNode[] = [];
@@ -108,10 +88,10 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpd
   }
   
   // 扁平化当前显示的节点
-  const flattenedNodes = flattenNoteTree(displayNodes, 0, [], selectedNodePath);
+  const flattenedNodes = flattenNoteTree(displayNodes, 0, []);
   
-  // 如果有父节点，添加".."选项到列表开头
-  const showParentOption = parentNode !== null;
+  // 如果有父节点且选中的不是根节点，添加".."选项到列表开头
+  const showParentOption = parentNode !== null && selectedNode?.id !== 'root';
   const itemCount = showParentOption ? flattenedNodes.length + 1 : flattenedNodes.length;
   
   // 自定义的列表项组件，用于处理".."选项
@@ -213,8 +193,7 @@ function NoteTree({ nodes, onNodeSelect, selectedNodeId, selectedNodePath, onUpd
                 parentNode,
                 showParentOption,
                 onUpdateNodes,
-                noteNodes,
-                onDeleteNode  // 传递删除回调
+                noteNodes
               }}
         width="100%"
       >
@@ -978,7 +957,6 @@ function NoteEditor({ note, onNoteChange }: {
             nodes={isSearching ? searchResults : noteNodes} 
             onNodeSelect={handleNodeSelect} 
             selectedNodeId={selectedNode?.id || null}
-            selectedNodePath={selectedNode ? getNodePath(noteNodes, selectedNode.id) || undefined : undefined}
             onUpdateNodes={setNoteNodes}
             noteNodes={noteNodes}
             onDeleteNode={handleNodeDelete}  // 传递删除回调
