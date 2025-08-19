@@ -140,8 +140,11 @@ publish.sh 脚本会自动完成以下步骤：
 - 清理之前的构建产物
 - 为 macOS、Linux、Windows 构建应用
 - 打包源代码
+- 检查 GitHub 上是否已存在相同版本号的 Release
 - 创建 GitHub Release
 - 上传所有构建产物到 Release
+
+如果在 GitHub 上检测到已存在相同版本号的 Release，脚本会显示已存在的版本备注信息，并询问是否替换。您可以选择替换已存在的版本或取消发布流程。
 
 ### 上传的文件
 
@@ -161,6 +164,15 @@ publish.sh 脚本会自动完成以下步骤：
 ### 环境变量
 
 - `GITHUB_TOKEN`: GitHub Personal Access Token，需要有 repo 权限
+
+您也可以将环境变量保存在项目根目录的 `.env` 文件中，脚本会自动加载这些变量：
+
+```bash
+# .env 文件内容示例
+GITHUB_TOKEN=your_github_token_here
+```
+
+注意：请确保将 `.env` 文件添加到 `.gitignore` 中，避免将敏感信息提交到代码仓库。
 
 ## GitHub 同步设置
 
