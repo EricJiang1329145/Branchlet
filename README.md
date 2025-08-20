@@ -102,20 +102,7 @@ npm run tauri build
 
 ### 使用 publish.sh 脚本自动发布
 
-项目包含一个 `scripts/publish.sh` 脚本，可以自动构建 Windows、macOS 平台的发行版，并将它们上传到 GitHub Releases。
-
-### 使用 auto-publish.sh 脚本自动发布
-
-项目还包含一个 `scripts/auto-publish.sh` 脚本，这是一个全新的自动化发布脚本，提供了更简单的发布流程：
-
-1. 显示当前版本号
-2. 提示输入目标版本号
-3. 提供发布状态选项供选择（Latest、Pre-release、Draft）
-4. 自动更新版本号并推送到GitHub
-
-两个脚本的主要区别在于：
-- `publish.sh` 会构建应用并上传到 GitHub Releases
-- `auto-publish.sh` 只更新版本号并推送 Git tag，不执行构建和上传操作
+项目包含一个 `scripts/publish.sh` 脚本，可以自动构建 Windows、macOS、Linux 平台的发行版，并将它们上传到 GitHub Releases。
 
 ### 前置要求
 
@@ -145,13 +132,6 @@ export GITHUB_TOKEN=your_github_token
 ```bash
 ./scripts/publish.sh --repo-owner your-github-username --repo-name Branchlet --version 0.1.0
 ```
-
-在运行脚本时，会提示选择发布状态：
-- Latest (最新稳定版)
-- Pre-release (预发布版)
-- Draft (草稿)
-
-根据选择的不同状态，创建的GitHub Release将具有相应的属性。
 
 ### 脚本功能说明
 

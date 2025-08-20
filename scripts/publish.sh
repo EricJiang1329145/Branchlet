@@ -27,44 +27,11 @@ if [ -z "$RELEASE_NOTES" ]; then
   RELEASE_NOTES="Release of version $VERSION"
 fi
 
-# 询问发布状态
-echo "请选择发布状态:"
-echo "1) Latest (最新稳定版)"
-echo "2) Pre-release (预发布版)"
-echo "3) Draft (草稿)"
-read -p "请输入选项 (1-3, 默认为1): " RELEASE_CHOICE
-
-# 设置默认选项
-if [ -z "$RELEASE_CHOICE" ]; then
-  RELEASE_CHOICE=1
-fi
-
-# 根据用户选择设置发布参数
-DRAFT=false
-PRERELEASE=false
-case $RELEASE_CHOICE in
-  1)
-    echo "将发布为 Latest 版本"
-    ;;
-  2)
-    echo "将发布为 Pre-release 版本"
-    PRERELEASE=true
-    ;;
-  3)
-    echo "将发布为 Draft 版本"
-    DRAFT=true
-    ;;
-  *)
-    echo "无效选项，将发布为 Latest 版本"
-    ;;
-esac
-
 # 复述用户输入
 echo "您输入的版本号是: $VERSION"
 echo "您输入的版本介绍是: $RELEASE_NOTES"
 echo "您输入的仓库所有者是: $REPO_OWNER"
 echo "您输入的仓库名称是: $REPO_NAME"
-echo "发布状态: $(case $RELEASE_CHOICE in 1) echo 'Latest'; ;; 2) echo 'Pre-release'; ;; 3) echo 'Draft'; ;; *) echo 'Latest'; ;; esac)"
 echo "请确认以上信息是否正确，按回车键继续..."
 read -r
 
@@ -341,7 +308,7 @@ upload_to_github() {
       -H "Authorization: token $GITHUB_TOKEN" \
       -H "Accept: application/vnd.github.v3+json" \
       https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases \
-      -d "{\"tag_name\": \"v$VERSION\", \"name\": \"Release v$VERSION\", \"body\": \"$RELEASE_NOTES\", \"draft\": $DRAFT, \"prerelease\": $PRERELEASE}")
+      -d "{\"tag_name\": \"v$VERSION\", \"name\": \"Release v$VERSION\", \"body\": \"$RELEASE_NOTES\"}")
     
     HTTP_CODE=${RESPONSE: -3}
     RESPONSE_BODY=${RESPONSE%???}
