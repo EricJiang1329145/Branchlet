@@ -33,9 +33,14 @@ while git rev-parse -q --verify "refs/tags/$TAG_NAME" >/dev/null 2>&1; do
   
   case $choice in
     d|D)
-      echo "正在删除旧标签: $TAG_NAME"
+      echo "正在删除本地标签: $TAG_NAME"
       git tag -d "$TAG_NAME"
-      git push origin --delete "$TAG_NAME" 2>/dev/null || true
+      echo "正在删除远程标签: $TAG_NAME"
+      if git push origin --delete "$TAG_NAME" 2>/dev/null; then
+        echo "远程标签 $TAG_NAME 删除成功"
+      else
+        echo "警告: 远程标签 $TAG_NAME 删除失败或不存在"
+      fi
       break
       ;;
     n|N)
