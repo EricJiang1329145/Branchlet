@@ -84,11 +84,9 @@ fi
 echo "正在创建标签: $TAG_NAME"
 git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
 
-# 推送标签到远程仓库
+# 推送所有更改到远程仓库
 echo "正在推送到远程仓库..."
+git push origin main
 git push origin "$TAG_NAME"
-
-# 同时推送主分支（如果需要）
-# git push origin main
 
 echo "版本 $TAG_NAME 已成功发布并推送到远程仓库！"
