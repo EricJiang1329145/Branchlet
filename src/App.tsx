@@ -534,7 +534,7 @@ function NoteEditor({ note, onNoteChange }: {
     const newNote: NoteNode = {
       id: newId,
       title: newTitle,
-      content: '请输入笔记内容',
+      content: '',
       children: [],
       expanded: true,
       synced: false // 新笔记默认未同步

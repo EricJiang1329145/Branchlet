@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@heroui/react": "^2.8.2",
