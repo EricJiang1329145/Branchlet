@@ -21,6 +21,20 @@ else
   NEW_VERSION=$1
 fi
 
+# 更新 package.json 中的版本号
+if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+  echo "正在更新 package.json 版本号: $CURRENT_VERSION -> $NEW_VERSION"
+  npm version "$NEW_VERSION" --no-git-tag-version
+  
+  # 更新 tauri.conf.json 中的版本号
+  echo "正在更新 tauri.conf.json 版本号: $CURRENT_VERSION -> $NEW_VERSION"
+  sed -i "" "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
+  
+  # 提交版本号更新
+  git add package.json src-tauri/tauri.conf.json
+  git commit -m "chore: update version to $NEW_VERSION"
+fi
+
 # 创建版本标签
 TAG_NAME="v$NEW_VERSION"
 
