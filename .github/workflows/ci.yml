@@ -34,4 +34,4 @@ jobs:
           # 项目配置的打包目录名称
           folder: dist
           # 提交分支名
-          branch: gh-pages
+          branch: static-pages
